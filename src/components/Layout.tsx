@@ -35,7 +35,7 @@ const Layout = ({ children, title, role }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -55,7 +55,19 @@ const Layout = ({ children, title, role }: LayoutProps) => {
           </Button>
         </div>
       </header>
-      <main className="container py-8 px-4">{children}</main>
+      <main className="flex-1 container py-8 px-4 pb-24">{children}</main>
+      <footer className="fixed bottom-0 left-0 right-0 z-40 w-full border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="container py-3 px-4">
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              Motherson Sumi Wiring India Ltd
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Employee Onboarding & Evaluation System
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
