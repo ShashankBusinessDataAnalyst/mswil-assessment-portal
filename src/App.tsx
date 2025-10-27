@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import EvaluatorDashboard from "./pages/EvaluatorDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import NewJoineeDashboard from "./pages/NewJoineeDashboard";
+import TestManagement from "./pages/TestManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -120,6 +121,16 @@ const App = () => {
               element={
                 session && userRole === "admin" ? (
                   <AdminDashboard />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/admin/tests"
+              element={
+                session && userRole === "admin" ? (
+                  <TestManagement />
                 ) : (
                   <Navigate to="/auth" replace />
                 )

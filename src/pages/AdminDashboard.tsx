@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Users, ClipboardList, UserCog, BarChart3 } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTests: 0,
@@ -196,7 +198,7 @@ const AdminDashboard = () => {
                   <li>Unlock graded tests for specific users</li>
                   <li>View test completion statistics</li>
                 </ul>
-                <Button>Manage Tests</Button>
+                <Button onClick={() => navigate("/admin/tests")}>Manage Tests</Button>
               </CardContent>
             </Card>
           </TabsContent>
