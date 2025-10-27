@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Users, ClipboardList, UserCog, BarChart3 } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
@@ -22,6 +23,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [cohortEvaluations, setCohortEvaluations] = useState<any[]>([]);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchStats();
@@ -54,7 +56,7 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      // Fetch profiles and user_roles separately then combine them
+      // Fetch profiles and user_roles
       const [profilesResult, rolesResult] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("user_id, role")
@@ -63,11 +65,21 @@ const AdminDashboard = () => {
       if (profilesResult.error) throw profilesResult.error;
       if (rolesResult.error) throw rolesResult.error;
 
-      // Combine the data
-      const usersWithRoles = profilesResult.data.map(profile => ({
-        ...profile,
-        user_roles: rolesResult.data.filter(role => role.user_id === profile.id)
-      }));
+      // Get auth users to extract userId from email
+      const authResponse = await supabase.auth.admin.listUsers();
+      const authUsers = authResponse.data?.users || [];
+
+      // Combine the data and extract userId from email
+      const usersWithRoles = profilesResult.data.map(profile => {
+        const authUser = authUsers.find((u: any) => u.id === profile.id);
+        const userId = authUser?.email?.split('@')[0] || '-';
+        
+        return {
+          ...profile,
+          userId,
+          user_roles: rolesResult.data.filter(role => role.user_id === profile.id)
+        };
+      });
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -146,6 +158,11 @@ const AdminDashboard = () => {
     { title: "Completed", value: stats.completedAttempts, icon: BarChart3, color: "success" }
   ];
 
+  // Filter users by role
+  const filteredUsers = roleFilter === "all" 
+    ? users 
+    : users.filter(user => user.user_roles?.some((ur: any) => ur.role === roleFilter));
+
   if (loading) {
     return (
       <Layout title="Admin Dashboard" role="admin">
@@ -208,38 +225,64 @@ const AdminDashboard = () => {
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Users by Role</CardTitle>
-                <CardDescription>
-                  View all system users organized by their assigned roles
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Users by Role</CardTitle>
+                    <CardDescription>
+                      View all system users organized by their assigned roles
+                    </CardDescription>
+                  </div>
+                  <div className="w-[200px]">
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="new_joinee">New Joinee</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="evaluator">Evaluator</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Full Name</TableHead>
-                      <TableHead>Employee ID</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Cohort</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Cohort</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.full_name}</TableCell>
-                        <TableCell>{user.employee_id}</TableCell>
-                        <TableCell>{user.department || '-'}</TableCell>
-                        <TableCell>{user.cohort || '-'}</TableCell>
-                        <TableCell>
-                          {user.user_roles?.map((ur: any, idx: number) => (
-                            <Badge key={idx} variant="outline" className="mr-1 capitalize">
-                              {ur.role.replace('_', ' ')}
-                            </Badge>
-                          ))}
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No users found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.full_name}</TableCell>
+                          <TableCell>
+                            {user.user_roles?.map((ur: any, idx: number) => (
+                              <Badge key={idx} variant="outline" className="mr-1 capitalize">
+                                {ur.role.replace('_', ' ')}
+                              </Badge>
+                            ))}
+                          </TableCell>
+                          <TableCell>{user.userId}</TableCell>
+                          <TableCell>{user.employee_id}</TableCell>
+                          <TableCell>{user.cohort || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
