@@ -53,8 +53,7 @@ const App = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching role:", error);
