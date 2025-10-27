@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,16 @@ const loginSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/");
+      }
+    };
+    checkSession();
+  }, [navigate]);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     userId: "",
@@ -48,6 +58,7 @@ const Auth = () => {
       }
 
       toast.success("Logged in successfully");
+      navigate("/");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);

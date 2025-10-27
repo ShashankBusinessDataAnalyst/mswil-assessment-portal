@@ -15,10 +15,16 @@ const Layout = ({ children, title, role }: LayoutProps) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Error logging out");
-    } else {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error && !error.message.includes("session_not_found")) {
+        toast.error("Error logging out");
+        return;
+      }
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    } catch (error) {
+      // Even if there's an error, clear local state and redirect
       toast.success("Logged out successfully");
       navigate("/auth");
     }
