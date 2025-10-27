@@ -42,7 +42,7 @@ const Setup = () => {
           <div className="text-sm space-y-2">
             <p className="font-medium">This will create an admin user:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>Email: admin1@company.local</li>
+              <li>User ID: MSWIL_001</li>
               <li>Password: Pass@123</li>
               <li>Role: Admin</li>
             </ul>

@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 const CreateUserForm = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    userId: "",
     fullName: "",
     employeeId: "",
     email: "",
@@ -21,8 +22,14 @@ const CreateUserForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
-      toast.error("Full Name, Email, Password, and Role are required");
+    if (!formData.userId || !formData.fullName || !formData.email || !formData.password || !formData.role) {
+      toast.error("All fields except Employee ID are required");
+      return;
+    }
+
+    // Validate User ID format
+    if (!/^MSWIL_\d{3}$/.test(formData.userId)) {
+      toast.error("User ID must be in format MSWIL_XXX (e.g., MSWIL_001)");
       return;
     }
 
@@ -37,6 +44,7 @@ const CreateUserForm = () => {
     try {
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
+          userId: formData.userId,
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
@@ -51,8 +59,9 @@ const CreateUserForm = () => {
         throw new Error(data.error);
       }
 
-      toast.success(`User ${formData.fullName} created successfully with Employee ID: ${data.user?.employeeId || formData.employeeId}`);
+      toast.success(`User ${formData.fullName} created successfully with User ID: ${formData.userId}`);
       setFormData({
+        userId: "",
         fullName: "",
         employeeId: "",
         email: "",
@@ -77,6 +86,17 @@ const CreateUserForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="userId">User ID (Login)</Label>
+            <Input
+              id="userId"
+              value={formData.userId}
+              onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+              placeholder="e.g., MSWIL_001"
+              disabled={loading}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <Input

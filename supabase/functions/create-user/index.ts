@@ -30,17 +30,25 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { email, password, fullName, employeeId, role } = await req.json()
+    const { userId, email, password, fullName, employeeId, role } = await req.json()
 
     // Validate inputs (employeeId is optional, will be auto-generated)
-    if (!email || !password || !fullName || !role) {
+    if (!userId || !email || !password || !fullName || !role) {
       throw new Error('Missing required fields')
+    }
+
+    // Validate User ID format
+    if (!/^MSWIL_\d{3}$/.test(userId)) {
+      throw new Error('User ID must be in format MSWIL_XXX (e.g., MSWIL_001)')
     }
 
     // Validate employee ID format if provided
     if (employeeId && !/^MSWIL_\d{3}$/.test(employeeId)) {
       throw new Error('Employee ID must be in format MSWIL_XXX (e.g., MSWIL_001)')
     }
+
+    // Create email from userId
+    const authEmail = `${userId}@company.local`
 
     // Create user in auth system
     const userMetadata: { full_name: string; employee_id?: string } = {
@@ -53,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: authEmail,
       password,
       email_confirm: true,
       user_metadata: userMetadata,
@@ -94,7 +102,8 @@ Deno.serve(async (req) => {
         success: true, 
         user: {
           id: authData.user.id,
-          email: authData.user.email,
+          userId,
+          email,
           fullName,
           employeeId: finalEmployeeId,
           role

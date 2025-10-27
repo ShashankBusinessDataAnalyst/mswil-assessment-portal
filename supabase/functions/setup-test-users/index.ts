@@ -13,7 +13,7 @@ interface TestUser {
 }
 
 const testUsers: TestUser[] = [
-  { userId: 'admin1', password: 'Pass@123', fullName: 'Admin User', role: 'admin' },
+  { userId: 'MSWIL_001', password: 'Pass@123', fullName: 'Admin User', role: 'admin' },
 ]
 
 Deno.serve(async (req) => {
