@@ -198,6 +198,7 @@ export type Database = {
           correct_answer: string | null
           created_at: string | null
           id: string
+          image_url: string | null
           max_points: number
           options: Json | null
           question_number: number
@@ -209,6 +210,7 @@ export type Database = {
           correct_answer?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           max_points?: number
           options?: Json | null
           question_number: number
@@ -220,6 +222,7 @@ export type Database = {
           correct_answer?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           max_points?: number
           options?: Json | null
           question_number?: number

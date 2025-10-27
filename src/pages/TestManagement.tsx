@@ -38,8 +38,10 @@ const TestManagement = () => {
     question_number: "",
     max_points: "10",
     correct_answer: "",
-    options: ["", "", "", ""]
+    options: ["", "", "", ""],
+    image_url: ""
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchTests();
@@ -206,7 +208,8 @@ const TestManagement = () => {
         question_number: parseInt(questionForm.question_number),
         max_points: parseInt(questionForm.max_points),
         correct_answer: questionForm.question_type === "mcq" ? questionForm.correct_answer : questionForm.correct_answer || null,
-        options: questionForm.question_type === "mcq" ? questionForm.options.filter(o => o.trim()) : null
+        options: questionForm.question_type === "mcq" ? questionForm.options.filter(o => o.trim()) : null,
+        image_url: questionForm.image_url || null
       };
 
       if (editingQuestion) {
@@ -233,7 +236,8 @@ const TestManagement = () => {
         question_number: "",
         max_points: "10",
         correct_answer: "",
-        options: ["", "", "", ""]
+        options: ["", "", "", ""],
+        image_url: ""
       });
       fetchQuestions(selectedTest.id);
     } catch (error) {
@@ -250,7 +254,8 @@ const TestManagement = () => {
       question_number: question.question_number.toString(),
       max_points: question.max_points.toString(),
       correct_answer: question.correct_answer || "",
-      options: question.question_type === "mcq" ? [...question.options, "", "", "", ""].slice(0, 4) : ["", "", "", ""]
+      options: question.question_type === "mcq" ? [...question.options, "", "", "", ""].slice(0, 4) : ["", "", "", ""],
+      image_url: question.image_url || ""
     });
   };
 
@@ -277,6 +282,45 @@ const TestManagement = () => {
       ...questionForm,
       options: [...questionForm.options, ""]
     });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('question-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('question-images')
+        .getPublicUrl(filePath);
+
+      setQuestionForm({ ...questionForm, image_url: publicUrl });
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = () => {
+    setQuestionForm({ ...questionForm, image_url: "" });
   };
 
   if (loading) {
@@ -538,6 +582,31 @@ const TestManagement = () => {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="question_image">Question Image (Optional)</Label>
+                      {questionForm.image_url ? (
+                        <div className="space-y-2">
+                          <img 
+                            src={questionForm.image_url} 
+                            alt="Question" 
+                            className="max-w-full h-auto rounded-lg border max-h-64 object-contain"
+                          />
+                          <Button type="button" variant="outline" size="sm" onClick={removeImage}>
+                            Remove Image
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          id="question_image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                        />
+                      )}
+                      {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+                    </div>
+
                     {questionForm.question_type === "mcq" ? (
                       <>
                         <div className="space-y-2">
@@ -589,23 +658,24 @@ const TestManagement = () => {
                         {editingQuestion ? "Update Question" : "Add Question"}
                       </Button>
                       {editingQuestion && (
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => {
-                            setEditingQuestion(null);
-                            setQuestionForm({
-                              question_text: "",
-                              question_type: "mcq",
-                              question_number: "",
-                              max_points: "10",
-                              correct_answer: "",
-                              options: ["", "", "", ""]
-                            });
-                          }}
-                        >
-                          Cancel Edit
-                        </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setEditingQuestion(null);
+                              setQuestionForm({
+                                question_text: "",
+                                question_type: "mcq",
+                                question_number: "",
+                                max_points: "10",
+                                correct_answer: "",
+                                options: ["", "", "", ""],
+                                image_url: ""
+                              });
+                            }}
+                          >
+                            Cancel Edit
+                          </Button>
                       )}
                     </div>
                   </form>
@@ -636,6 +706,13 @@ const TestManagement = () => {
                                   <span className="text-sm text-muted-foreground">{question.max_points} points</span>
                                 </div>
                                 <p className="font-medium mb-2">{question.question_text}</p>
+                                {question.image_url && (
+                                  <img 
+                                    src={question.image_url} 
+                                    alt="Question" 
+                                    className="max-w-full h-auto rounded-lg border max-h-48 object-contain mb-2"
+                                  />
+                                )}
                                 {question.question_type === "mcq" && question.options && (
                                   <ul className="space-y-1 ml-4">
                                     {question.options.map((opt: string, idx: number) => (

@@ -35,6 +35,7 @@ interface Question {
   question_type: string;
   options: any;
   max_points: number;
+  image_url?: string | null;
 }
 
 interface Answer {
@@ -296,6 +297,16 @@ const TestPage = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-lg">{currentQuestion.question_text}</p>
+
+            {currentQuestion.image_url && (
+              <div className="rounded-lg border overflow-hidden bg-muted/30">
+                <img 
+                  src={currentQuestion.image_url} 
+                  alt="Question illustration" 
+                  className="max-w-full h-auto max-h-96 object-contain mx-auto"
+                />
+              </div>
+            )}
 
             {currentQuestion.question_type === "mcq" && currentQuestion.options ? (
               <RadioGroup
