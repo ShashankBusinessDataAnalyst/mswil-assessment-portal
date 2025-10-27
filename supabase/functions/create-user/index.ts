@@ -42,10 +42,6 @@ Deno.serve(async (req) => {
       throw new Error('User ID must be in format MSWIL_XXX (e.g., MSWIL_001)')
     }
 
-    // Validate employee ID format if provided
-    if (employeeId && !/^MSWIL_\d{3}$/.test(employeeId)) {
-      throw new Error('Employee ID must be in format MSWIL_XXX (e.g., MSWIL_001)')
-    }
 
     // Create email from userId
     const authEmail = `${userId}@company.local`

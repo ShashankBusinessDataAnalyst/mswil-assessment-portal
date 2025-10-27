@@ -33,11 +33,6 @@ const CreateUserForm = () => {
       return;
     }
 
-    // Validate employee ID format if provided
-    if (formData.employeeId && !/^MSWIL_\d{3}$/.test(formData.employeeId)) {
-      toast.error("Employee ID must be in format MSWIL_XXX (e.g., MSWIL_001)");
-      return;
-    }
 
     setLoading(true);
 
@@ -114,7 +109,7 @@ const CreateUserForm = () => {
               id="employeeId"
               value={formData.employeeId}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              placeholder="e.g., MSWIL_001 (auto-generated if empty)"
+              placeholder="Enter employee ID (auto-generated if empty)"
               disabled={loading}
             />
           </div>
