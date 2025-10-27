@@ -41,8 +41,8 @@ const EvaluatorDashboard = () => {
           user_id,
           test_id,
           submitted_at,
-          profiles!test_attempts_user_id_fkey (full_name, employee_id),
-          tests!test_attempts_test_id_fkey (title, test_number)
+          profiles!user_id (full_name, employee_id),
+          tests!test_id (title, test_number)
         `)
         .eq("status", "submitted")
         .order("submitted_at", { ascending: true });
