@@ -91,10 +91,16 @@ Deno.serve(async (req) => {
         .eq('id', authData.user.id)
     }
 
-    // Fetch the profile to get the final employee_id
+    // Update profile with userId (login ID)
+    await supabaseAdmin
+      .from('profiles')
+      .update({ user_id: userId })
+      .eq('id', authData.user.id)
+
+    // Fetch the profile to get the final data
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('employee_id, cohort')
+      .select('employee_id, cohort, user_id')
       .eq('id', authData.user.id)
       .single()
 

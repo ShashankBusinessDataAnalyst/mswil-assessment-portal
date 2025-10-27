@@ -122,6 +122,7 @@ export type Database = {
           full_name: string
           id: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           cohort?: string | null
@@ -131,6 +132,7 @@ export type Database = {
           full_name: string
           id: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           cohort?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           full_name?: string
           id?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

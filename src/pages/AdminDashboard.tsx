@@ -65,21 +65,12 @@ const AdminDashboard = () => {
       if (profilesResult.error) throw profilesResult.error;
       if (rolesResult.error) throw rolesResult.error;
 
-      // Get auth users to extract userId from email
-      const authResponse = await supabase.auth.admin.listUsers();
-      const authUsers = authResponse.data?.users || [];
-
-      // Combine the data and extract userId from email
-      const usersWithRoles = profilesResult.data.map(profile => {
-        const authUser = authUsers.find((u: any) => u.id === profile.id);
-        const userId = authUser?.email?.split('@')[0] || '-';
-        
-        return {
-          ...profile,
-          userId,
-          user_roles: rolesResult.data.filter(role => role.user_id === profile.id)
-        };
-      });
+      // Combine the data
+      const usersWithRoles = profilesResult.data.map(profile => ({
+        ...profile,
+        userId: profile.user_id || profile.employee_id, // Use user_id or fallback to employee_id
+        user_roles: rolesResult.data.filter(role => role.user_id === profile.id)
+      }));
 
       setUsers(usersWithRoles);
     } catch (error) {
