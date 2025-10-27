@@ -11,8 +11,13 @@ import { z } from "zod";
 import mothersonLogo from "@/assets/motherson-logo.png";
 
 const loginSchema = z.object({
-  userId: z.string().trim().min(3, { message: "User ID must be at least 3 characters" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" })
+  userId: z.string()
+    .trim()
+    .min(3, { message: "User ID must be at least 3 characters" })
+    .max(50, { message: "User ID must be less than 50 characters" }),
+  password: z.string()
+    .min(6, { message: "Password must be at least 6 characters" })
+    .max(128, { message: "Password must be less than 128 characters" })
 });
 
 const Auth = () => {

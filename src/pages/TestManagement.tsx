@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { Plus, Edit, Trash2, ArrowLeft, FileQuestion } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+import { testSchema, questionSchema, validateMCQQuestion } from "@/lib/validation";
 
 const TestManagement = () => {
   const navigate = useNavigate();
@@ -67,18 +69,22 @@ const TestManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.test_number) {
-      toast.error("Title and test number are required");
-      return;
-    }
-
     try {
-      const testData = {
+      // Validate form data
+      const validated = testSchema.parse({
         title: formData.title,
-        description: formData.description,
+        description: formData.description || "",
         test_number: parseInt(formData.test_number),
         time_limit_minutes: formData.time_limit_minutes ? parseInt(formData.time_limit_minutes) : null,
         passing_score: parseInt(formData.passing_score)
+      });
+
+      const testData = {
+        title: validated.title,
+        description: validated.description || null,
+        test_number: validated.test_number,
+        time_limit_minutes: validated.time_limit_minutes,
+        passing_score: validated.passing_score
       };
 
       if (editingTest) {
@@ -109,8 +115,11 @@ const TestManagement = () => {
       });
       fetchTests();
     } catch (error) {
-      toast.error(editingTest ? "Failed to update test" : "Failed to create test");
-      console.error(error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(editingTest ? "Failed to update test" : "Failed to create test");
+      }
     }
   };
 
@@ -185,31 +194,38 @@ const TestManagement = () => {
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!questionForm.question_text || !questionForm.question_number) {
-      toast.error("Question text and number are required");
-      return;
-    }
-
-    if (questionForm.question_type === "mcq" && questionForm.options.filter(o => o.trim()).length < 2) {
-      toast.error("MCQ questions need at least 2 options");
-      return;
-    }
-
-    if (questionForm.question_type === "mcq" && !questionForm.correct_answer) {
-      toast.error("Please select the correct answer for MCQ");
-      return;
-    }
-
     try {
-      const questionData = {
-        test_id: selectedTest.id,
+      const filteredOptions = questionForm.options.filter(o => o.trim());
+      
+      // Validate form data
+      const validated = questionSchema.parse({
         question_text: questionForm.question_text,
         question_type: questionForm.question_type,
         question_number: parseInt(questionForm.question_number),
         max_points: parseInt(questionForm.max_points),
-        correct_answer: questionForm.question_type === "mcq" ? questionForm.correct_answer : questionForm.correct_answer || null,
-        options: questionForm.question_type === "mcq" ? questionForm.options.filter(o => o.trim()) : null,
-        image_url: questionForm.image_url || null
+        correct_answer: questionForm.correct_answer || "",
+        options: questionForm.question_type === "mcq" ? filteredOptions : null,
+        image_url: questionForm.image_url || ""
+      });
+
+      // Additional MCQ validation
+      if (questionForm.question_type === "mcq") {
+        validateMCQQuestion({
+          question_type: questionForm.question_type,
+          options: filteredOptions,
+          correct_answer: questionForm.correct_answer
+        });
+      }
+
+      const questionData = {
+        test_id: selectedTest.id,
+        question_text: validated.question_text,
+        question_type: validated.question_type,
+        question_number: validated.question_number,
+        max_points: validated.max_points,
+        correct_answer: validated.question_type === "mcq" ? validated.correct_answer : validated.correct_answer || null,
+        options: validated.options,
+        image_url: validated.image_url || null
       };
 
       if (editingQuestion) {
@@ -241,8 +257,13 @@ const TestManagement = () => {
       });
       fetchQuestions(selectedTest.id);
     } catch (error) {
-      toast.error("Failed to save question");
-      console.error(error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to save question");
+      }
     }
   };
 

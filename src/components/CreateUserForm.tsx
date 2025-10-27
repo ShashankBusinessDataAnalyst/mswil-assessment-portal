@@ -7,6 +7,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+const createUserSchema = z.object({
+  userId: z.string()
+    .trim()
+    .regex(/^MSWIL_\d{3}$/, "User ID must be in format MSWIL_XXX (e.g., MSWIL_001)"),
+  fullName: z.string()
+    .trim()
+    .min(2, "Full name must be at least 2 characters")
+    .max(100, "Full name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Full name can only contain letters and spaces"),
+  employeeId: z.string()
+    .trim()
+    .max(50, "Employee ID must be less than 50 characters")
+    .optional()
+    .or(z.literal("")),
+  email: z.string()
+    .trim()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters")
+    .toLowerCase(),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be less than 128 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  role: z.enum(["admin", "evaluator", "manager", "new_joinee"], {
+    required_error: "Please select a role"
+  })
+});
 
 const CreateUserForm = () => {
   const [loading, setLoading] = useState(false);
@@ -22,29 +54,20 @@ const CreateUserForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.userId || !formData.fullName || !formData.email || !formData.password || !formData.role) {
-      toast.error("All fields except Employee ID are required");
-      return;
-    }
-
-    // Validate User ID format
-    if (!/^MSWIL_\d{3}$/.test(formData.userId)) {
-      toast.error("User ID must be in format MSWIL_XXX (e.g., MSWIL_001)");
-      return;
-    }
-
-
     setLoading(true);
 
     try {
+      // Validate form data with Zod
+      const validated = createUserSchema.parse(formData);
+
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
-          userId: formData.userId,
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          employeeId: formData.employeeId,
-          role: formData.role
+          userId: validated.userId,
+          email: validated.email,
+          password: validated.password,
+          fullName: validated.fullName,
+          employeeId: validated.employeeId || undefined,
+          role: validated.role
         }
       });
 
@@ -54,7 +77,7 @@ const CreateUserForm = () => {
         throw new Error(data.error);
       }
 
-      toast.success(`User ${formData.fullName} created successfully with User ID: ${formData.userId}`);
+      toast.success(`User ${validated.fullName} created successfully`);
       setFormData({
         userId: "",
         fullName: "",
@@ -64,8 +87,11 @@ const CreateUserForm = () => {
         role: ""
       });
     } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to create user");
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to create user");
+      }
     } finally {
       setLoading(false);
     }
@@ -133,9 +159,12 @@ const CreateUserForm = () => {
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Enter password"
+              placeholder="Min 8 chars with upper, lower, number & special char"
               disabled={loading}
             />
+            <p className="text-xs text-muted-foreground">
+              Must contain: uppercase, lowercase, number, and special character
+            </p>
           </div>
 
           <div className="space-y-2">

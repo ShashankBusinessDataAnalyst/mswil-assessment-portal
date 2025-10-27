@@ -19,10 +19,17 @@ const Setup = () => {
         throw new Error(data.error);
       }
 
-      toast.success("Test users created successfully!");
-      console.log("Created users:", data.results);
+      // Display the temporary password in a secure way
+      if (data.results && data.results.length > 0 && data.results[0].temporaryPassword) {
+        const tempPassword = data.results[0].temporaryPassword;
+        toast.success("Admin user created successfully!", {
+          duration: 10000,
+          description: `Temporary Password: ${tempPassword} - Please save this and change it on first login.`
+        });
+      } else {
+        toast.success("User setup completed!");
+      }
     } catch (error) {
-      console.error('Setup error:', error);
       toast.error(error instanceof Error ? error.message : "Failed to setup users");
     } finally {
       setLoading(false);
@@ -43,9 +50,14 @@ const Setup = () => {
             <p className="font-medium">This will create an admin user:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
               <li>User ID: MSWIL_001</li>
-              <li>Password: Pass@123</li>
+              <li>A secure temporary password will be generated</li>
               <li>Role: Admin</li>
             </ul>
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md">
+              <p className="text-xs text-amber-800 dark:text-amber-200 font-medium">
+                ⚠️ Security Notice: You will be required to change the password on first login.
+              </p>
+            </div>
           </div>
           <Button onClick={setupUsers} disabled={loading} className="w-full">
             {loading ? (
@@ -54,7 +66,7 @@ const Setup = () => {
                 Setting up...
               </>
             ) : (
-              "Create Test Users"
+              "Create Admin User"
             )}
           </Button>
         </CardContent>

@@ -12,8 +12,31 @@ interface TestUser {
   role: 'admin' | 'evaluator' | 'manager' | 'new_joinee'
 }
 
+// Generate a secure random password
+function generateSecurePassword(): string {
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const special = '!@#$%^&*';
+  const allChars = uppercase + lowercase + numbers + special;
+  
+  let password = '';
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += special[Math.floor(Math.random() * special.length)];
+  
+  for (let i = 4; i < 12; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+const TEMP_PASSWORD = generateSecurePassword();
+
 const testUsers: TestUser[] = [
-  { userId: 'MSWIL_001', password: 'Pass@123', fullName: 'Admin User', role: 'admin' },
+  { userId: 'MSWIL_001', password: TEMP_PASSWORD, fullName: 'Admin User', role: 'admin' },
 ]
 
 Deno.serve(async (req) => {
@@ -65,11 +88,20 @@ Deno.serve(async (req) => {
         throw roleError
       }
 
-      results.push({ userId: user.userId, status: 'created', id: authData.user.id })
+      results.push({ 
+        userId: user.userId, 
+        status: 'created', 
+        id: authData.user.id,
+        temporaryPassword: user.password 
+      })
     }
 
     return new Response(
-      JSON.stringify({ success: true, results }),
+      JSON.stringify({ 
+        success: true, 
+        results,
+        message: 'Admin user created. Please save the temporary password and change it on first login.'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
