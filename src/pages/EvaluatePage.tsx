@@ -124,7 +124,10 @@ const EvaluatePage = () => {
 
   const handleScoreChange = (responseId: string, value: string) => {
     const numValue = parseInt(value) || 0;
-    setScores(prev => ({ ...prev, [responseId]: numValue }));
+    const response = responses.find(r => r.id === responseId);
+    const maxPoints = response?.test_questions.max_points || 0;
+    const clampedValue = Math.min(Math.max(0, numValue), maxPoints);
+    setScores(prev => ({ ...prev, [responseId]: clampedValue }));
   };
 
   const handleFeedbackChange = (responseId: string, value: string) => {
