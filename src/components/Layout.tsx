@@ -17,14 +17,18 @@ const Layout = ({ children, title, role }: LayoutProps) => {
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error && !error.message.includes("session_not_found")) {
+      // Ignore session_not_found errors - session is already gone
+      if (error && error.message && !error.message.toLowerCase().includes("session")) {
         toast.error("Error logging out");
         return;
       }
+      // Clear local storage manually to ensure clean logout
+      localStorage.removeItem('supabase.auth.token');
       toast.success("Logged out successfully");
       navigate("/auth");
     } catch (error) {
       // Even if there's an error, clear local state and redirect
+      localStorage.removeItem('supabase.auth.token');
       toast.success("Logged out successfully");
       navigate("/auth");
     }
