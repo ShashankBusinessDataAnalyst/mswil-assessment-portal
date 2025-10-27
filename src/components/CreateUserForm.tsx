@@ -13,6 +13,9 @@ const createUserSchema = z.object({
   role: z.enum(["admin", "evaluator", "manager", "new_joinee"], {
     required_error: "Please select a role"
   }),
+  userId: z.string()
+    .trim()
+    .regex(/^MSWIL_[A-Z]\d{3}$/, "User ID must be in format MSWIL_XXXX (e.g., MSWIL_A001)"),
   fullName: z.string()
     .trim()
     .min(2, "Full name must be at least 2 characters")
@@ -46,6 +49,7 @@ const CreateUserForm = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     role: "",
+    userId: "",
     fullName: "",
     employeeId: "",
     email: "",
@@ -64,6 +68,7 @@ const CreateUserForm = () => {
 
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
+          userId: validated.userId,
           email: validated.email,
           password: validated.password,
           fullName: validated.fullName,
@@ -82,6 +87,7 @@ const CreateUserForm = () => {
       toast.success(`User ${validated.fullName} created successfully`);
       setFormData({
         role: "",
+        userId: "",
         fullName: "",
         employeeId: "",
         email: "",
@@ -126,6 +132,20 @@ const CreateUserForm = () => {
                 <SelectItem value="manager">Manager</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="userId">User ID (Login)</Label>
+            <Input
+              id="userId"
+              value={formData.userId}
+              onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+              placeholder="e.g., MSWIL_A001, MSWIL_E001, MSWIL_N001"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Format: MSWIL_[Letter][3 digits] - Use A for Admin, E for Evaluator, M for Manager, N for New Joinee
+            </p>
           </div>
 
           <div className="space-y-2">

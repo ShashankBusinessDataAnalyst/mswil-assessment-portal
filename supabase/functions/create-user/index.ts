@@ -30,64 +30,16 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { email, password, fullName, employeeId, role, cohort } = await req.json()
+    const { userId, email, password, fullName, employeeId, role, cohort } = await req.json()
 
     // Validate inputs (employeeId and cohort are optional)
-    if (!email || !password || !fullName || !role) {
+    if (!userId || !email || !password || !fullName || !role) {
       throw new Error('Missing required fields')
     }
 
-    // Auto-generate User ID based on role
-    let userId: string
-    if (role === 'admin') {
-      // Get the next available admin ID
-      const { data: existingAdmins } = await supabaseAdmin
-        .from('profiles')
-        .select('employee_id')
-        .ilike('employee_id', 'MSWIL_A%')
-        .order('employee_id', { ascending: false })
-        .limit(1)
-      
-      const lastAdminNum = existingAdmins && existingAdmins.length > 0 
-        ? parseInt(existingAdmins[0].employee_id.replace('MSWIL_A', ''))
-        : 0
-      userId = `MSWIL_A${String(lastAdminNum + 1).padStart(3, '0')}`
-    } else if (role === 'evaluator') {
-      const { data: existing } = await supabaseAdmin
-        .from('profiles')
-        .select('employee_id')
-        .ilike('employee_id', 'MSWIL_E%')
-        .order('employee_id', { ascending: false })
-        .limit(1)
-      
-      const lastNum = existing && existing.length > 0 
-        ? parseInt(existing[0].employee_id.replace('MSWIL_E', ''))
-        : 0
-      userId = `MSWIL_E${String(lastNum + 1).padStart(3, '0')}`
-    } else if (role === 'manager') {
-      const { data: existing } = await supabaseAdmin
-        .from('profiles')
-        .select('employee_id')
-        .ilike('employee_id', 'MSWIL_M%')
-        .order('employee_id', { ascending: false })
-        .limit(1)
-      
-      const lastNum = existing && existing.length > 0 
-        ? parseInt(existing[0].employee_id.replace('MSWIL_M', ''))
-        : 0
-      userId = `MSWIL_M${String(lastNum + 1).padStart(3, '0')}`
-    } else { // new_joinee
-      const { data: existing } = await supabaseAdmin
-        .from('profiles')
-        .select('employee_id')
-        .ilike('employee_id', 'MSWIL_N%')
-        .order('employee_id', { ascending: false })
-        .limit(1)
-      
-      const lastNum = existing && existing.length > 0 
-        ? parseInt(existing[0].employee_id.replace('MSWIL_N', ''))
-        : 0
-      userId = `MSWIL_N${String(lastNum + 1).padStart(3, '0')}`
+    // Validate User ID format
+    if (!/^MSWIL_[A-Z]\d{3}$/.test(userId)) {
+      throw new Error('User ID must be in format MSWIL_XXXX (e.g., MSWIL_A001)')
     }
 
 
