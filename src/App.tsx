@@ -14,6 +14,7 @@ import EvaluatorDashboard from "./pages/EvaluatorDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import NewJoineeDashboard from "./pages/NewJoineeDashboard";
 import TestManagement from "./pages/TestManagement";
+import TestPage from "./pages/TestPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -161,6 +162,16 @@ const App = () => {
               element={
                 session && userRole === "new_joinee" ? (
                   <NewJoineeDashboard />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/test/:testId"
+              element={
+                session && userRole === "new_joinee" ? (
+                  <TestPage />
                 ) : (
                   <Navigate to="/auth" replace />
                 )
