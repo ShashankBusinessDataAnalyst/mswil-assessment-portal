@@ -17,6 +17,19 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     )
 
+    // Get the current user making the request
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user: currentUser }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    
+    if (userError || !currentUser) {
+      throw new Error('Unauthorized')
+    }
+
     const { email, password, fullName, employeeId, role } = await req.json()
 
     // Validate inputs
@@ -45,7 +58,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: authData.user.id,
         role: role,
-        assigned_by: authData.user.id,
+        assigned_by: currentUser.id,
       })
 
     if (roleError) {

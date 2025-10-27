@@ -50,16 +50,22 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_roles (role)
-        `)
-        .order("created_at", { ascending: false });
+      // Fetch profiles and user_roles separately then combine them
+      const [profilesResult, rolesResult] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role")
+      ]);
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesResult.error) throw profilesResult.error;
+      if (rolesResult.error) throw rolesResult.error;
+
+      // Combine the data
+      const usersWithRoles = profilesResult.data.map(profile => ({
+        ...profile,
+        user_roles: rolesResult.data.filter(role => role.user_id === profile.id)
+      }));
+
+      setUsers(usersWithRoles);
     } catch (error) {
       toast.error("Failed to load users");
       console.error(error);
