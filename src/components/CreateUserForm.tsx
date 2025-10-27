@@ -21,8 +21,14 @@ const CreateUserForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.employeeId || !formData.email || !formData.password || !formData.role) {
-      toast.error("All fields are required");
+    if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
+      toast.error("Full Name, Email, Password, and Role are required");
+      return;
+    }
+
+    // Validate employee ID format if provided
+    if (formData.employeeId && !/^MSWIL_\d{3}$/.test(formData.employeeId)) {
+      toast.error("Employee ID must be in format MSWIL_XXX (e.g., MSWIL_001)");
       return;
     }
 
@@ -45,7 +51,7 @@ const CreateUserForm = () => {
         throw new Error(data.error);
       }
 
-      toast.success(`User ${formData.fullName} created successfully`);
+      toast.success(`User ${formData.fullName} created successfully with Employee ID: ${data.user?.employeeId || formData.employeeId}`);
       setFormData({
         fullName: "",
         employeeId: "",
@@ -83,12 +89,12 @@ const CreateUserForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="employeeId">Employee ID</Label>
+            <Label htmlFor="employeeId">Employee ID (Optional)</Label>
             <Input
               id="employeeId"
               value={formData.employeeId}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              placeholder="e.g., ADMIN1, EV001"
+              placeholder="e.g., MSWIL_001 (auto-generated if empty)"
               disabled={loading}
             />
           </div>
