@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Setup from "./pages/Setup";
 import AdminDashboard from "./pages/AdminDashboard";
 import EvaluatorDashboard from "./pages/EvaluatorDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -114,6 +115,7 @@ const App = () => {
               path="/auth"
               element={!session ? <Auth /> : <Navigate to={getDashboardRoute()} replace />}
             />
+            <Route path="/setup" element={<Setup />} />
             <Route
               path="/admin"
               element={
