@@ -34,21 +34,47 @@ const EvaluatorDashboard = () => {
 
   const fetchPendingAttempts = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch test attempts
+      const { data: attempts, error: attemptsError } = await supabase
         .from("test_attempts")
-        .select(`
-          id,
-          user_id,
-          test_id,
-          submitted_at,
-          profiles!user_id (full_name, employee_id),
-          tests!test_id (title, test_number)
-        `)
+        .select("id, user_id, test_id, submitted_at")
         .eq("status", "submitted")
         .order("submitted_at", { ascending: true });
 
-      if (error) throw error;
-      setPendingAttempts(data as any || []);
+      if (attemptsError) throw attemptsError;
+      if (!attempts || attempts.length === 0) {
+        setPendingAttempts([]);
+        return;
+      }
+
+      // Get unique user IDs and test IDs
+      const userIds = [...new Set(attempts.map(a => a.user_id))];
+      const testIds = [...new Set(attempts.map(a => a.test_id))];
+
+      // Fetch profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, employee_id")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Fetch tests
+      const { data: tests, error: testsError } = await supabase
+        .from("tests")
+        .select("id, title, test_number")
+        .in("id", testIds);
+
+      if (testsError) throw testsError;
+
+      // Combine the data
+      const combined = attempts.map(attempt => ({
+        ...attempt,
+        profiles: profiles?.find(p => p.id === attempt.user_id) || { full_name: "Unknown", employee_id: "N/A" },
+        tests: tests?.find(t => t.id === attempt.test_id) || { title: "Unknown", test_number: 0 }
+      }));
+
+      setPendingAttempts(combined as any);
     } catch (error) {
       toast.error("Failed to load pending evaluations");
       console.error(error);
