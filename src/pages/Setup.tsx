@@ -40,12 +40,11 @@ const Setup = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm space-y-2">
-            <p className="font-medium">This will create:</p>
+            <p className="font-medium">This will create an admin user:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>ADMIN1@company.local (Admin) - Pass123</li>
-              <li>EV001@company.local (Evaluator) - Pass123</li>
-              <li>MJ001@company.local (Manager) - Pass123</li>
-              <li>NJ001@company.local (New Joinee) - Pass123</li>
+              <li>Email: admin1@company.local</li>
+              <li>Password: Pass@123</li>
+              <li>Role: Admin</li>
             </ul>
           </div>
           <Button onClick={setupUsers} disabled={loading} className="w-full">
