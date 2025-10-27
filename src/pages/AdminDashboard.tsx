@@ -21,10 +21,12 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
+  const [cohortEvaluations, setCohortEvaluations] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
     fetchUsers();
+    fetchCohortEvaluations();
   }, []);
 
   const fetchStats = async () => {
@@ -70,7 +72,70 @@ const AdminDashboard = () => {
       setUsers(usersWithRoles);
     } catch (error) {
       toast.error("Failed to load users");
-      console.error(error);
+    }
+  };
+
+  const fetchCohortEvaluations = async () => {
+    try {
+      // Fetch test attempts with evaluations and user profiles
+      const { data: attempts, error: attemptsError } = await supabase
+        .from("test_attempts")
+        .select(`
+          id,
+          test_id,
+          user_id,
+          status,
+          score,
+          passed,
+          submitted_at,
+          tests (
+            title,
+            test_number
+          )
+        `)
+        .in("status", ["evaluated", "graded"])
+        .order("submitted_at", { ascending: false });
+
+      if (attemptsError) throw attemptsError;
+
+      // Fetch profiles with cohort information
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, employee_id, cohort");
+
+      if (profilesError) throw profilesError;
+
+      // Combine attempts with profile data
+      const attemptsWithProfiles = attempts?.map(attempt => {
+        const profile = profiles?.find(p => p.id === attempt.user_id);
+        return {
+          ...attempt,
+          profile
+        };
+      }) || [];
+
+      // Group by cohort
+      const groupedByCohort = attemptsWithProfiles.reduce((acc: any, attempt: any) => {
+        const cohort = attempt.profile?.cohort || "Unassigned";
+        if (!acc[cohort]) {
+          acc[cohort] = [];
+        }
+        acc[cohort].push(attempt);
+        return acc;
+      }, {});
+
+      // Convert to array format for easier rendering
+      const cohortData = Object.entries(groupedByCohort).map(([cohort, attempts]: [string, any]) => ({
+        cohort,
+        attempts,
+        totalAttempts: attempts.length,
+        averageScore: attempts.reduce((sum: number, a: any) => sum + (a.score || 0), 0) / attempts.length,
+        passRate: (attempts.filter((a: any) => a.passed).length / attempts.length) * 100
+      }));
+
+      setCohortEvaluations(cohortData);
+    } catch (error) {
+      toast.error("Failed to load cohort evaluations");
     }
   };
 
@@ -116,6 +181,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="create">Create User</TabsTrigger>
             <TabsTrigger value="users">Users List</TabsTrigger>
+            <TabsTrigger value="evaluations">Evaluations by Cohort</TabsTrigger>
             <TabsTrigger value="tests">Test Management</TabsTrigger>
           </TabsList>
 
@@ -176,6 +242,90 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="evaluations" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Evaluations by Cohort</CardTitle>
+                <CardDescription>
+                  View evaluation performance metrics grouped by cohort
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {cohortEvaluations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No evaluations found. Evaluations will appear here once tests are graded.
+                  </p>
+                ) : (
+                  <div className="space-y-6">
+                    {cohortEvaluations.map((cohortData) => (
+                      <Card key={cohortData.cohort}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg">Cohort: {cohortData.cohort}</CardTitle>
+                            <div className="flex gap-4 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Total: </span>
+                                <span className="font-medium">{cohortData.totalAttempts}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Avg Score: </span>
+                                <span className="font-medium">{cohortData.averageScore.toFixed(1)}%</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Pass Rate: </span>
+                                <span className="font-medium">{cohortData.passRate.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Employee Name</TableHead>
+                                <TableHead>Employee ID</TableHead>
+                                <TableHead>Test</TableHead>
+                                <TableHead>Score</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Submitted</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {cohortData.attempts.map((attempt: any) => (
+                                <TableRow key={attempt.id}>
+                                  <TableCell className="font-medium">
+                                    {attempt.profile?.full_name || 'N/A'}
+                                  </TableCell>
+                                  <TableCell>{attempt.profile?.employee_id || 'N/A'}</TableCell>
+                                  <TableCell>
+                                    {attempt.tests?.title || `Test #${attempt.tests?.test_number}`}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className={attempt.score >= 70 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                                      {attempt.score || 0}%
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={attempt.passed ? "default" : "destructive"}>
+                                      {attempt.passed ? "Passed" : "Failed"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {attempt.submitted_at ? new Date(attempt.submitted_at).toLocaleDateString() : 'N/A'}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
