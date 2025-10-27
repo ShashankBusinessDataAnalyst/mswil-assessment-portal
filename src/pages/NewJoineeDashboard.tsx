@@ -140,7 +140,18 @@ const NewJoineeDashboard = () => {
             const attempt = attempts.find(a => a.test_id === test.id);
 
             return (
-              <Card key={test.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={test.id} 
+                className={`border-2 ${
+                  status.status === "completed" 
+                    ? "border-green-500 bg-green-50 dark:bg-green-950/20" 
+                    : status.status === "locked" 
+                    ? "border-red-500 bg-red-50 dark:bg-red-950/20"
+                    : status.status === "available"
+                    ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20"
+                    : "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                }`}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
