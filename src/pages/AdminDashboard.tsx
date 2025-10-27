@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Users, ClipboardList, UserCog, BarChart3 } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
@@ -17,9 +18,11 @@ const AdminDashboard = () => {
     completedAttempts: 0
   });
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
+    fetchUsers();
   }, []);
 
   const fetchStats = async () => {
@@ -42,6 +45,24 @@ const AdminDashboard = () => {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          *,
+          user_roles (role)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      toast.error("Failed to load users");
+      console.error(error);
     }
   };
 
@@ -85,7 +106,8 @@ const AdminDashboard = () => {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="create">Create User</TabsTrigger>
+            <TabsTrigger value="users">Users List</TabsTrigger>
             <TabsTrigger value="tests">Test Management</TabsTrigger>
           </TabsList>
 
@@ -105,8 +127,49 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="create" className="space-y-4">
             <CreateUserForm />
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Users by Role</CardTitle>
+                <CardDescription>
+                  View all system users organized by their assigned roles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Full Name</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Cohort</TableHead>
+                      <TableHead>Role</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell>{user.employee_id}</TableCell>
+                        <TableCell>{user.department || '-'}</TableCell>
+                        <TableCell>{user.cohort || '-'}</TableCell>
+                        <TableCell>
+                          {user.user_roles?.map((ur: any, idx: number) => (
+                            <Badge key={idx} variant="outline" className="mr-1 capitalize">
+                              {ur.role.replace('_', ' ')}
+                            </Badge>
+                          ))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="tests" className="space-y-4">
