@@ -9,12 +9,11 @@ interface TestUser {
   userId: string
   password: string
   fullName: string
-  employeeId: string
   role: 'admin' | 'evaluator' | 'manager' | 'new_joinee'
 }
 
 const testUsers: TestUser[] = [
-  { userId: 'admin1', password: 'Pass@123', fullName: 'Admin User', employeeId: 'admin1', role: 'admin' },
+  { userId: 'admin1', password: 'Pass@123', fullName: 'Admin User', role: 'admin' },
 ]
 
 Deno.serve(async (req) => {
@@ -41,7 +40,6 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           full_name: user.fullName,
-          employee_id: user.employeeId,
         }
       })
 
