@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Setup from "./pages/Setup";
 import AdminDashboard from "./pages/AdminDashboard";
 import EvaluatorDashboard from "./pages/EvaluatorDashboard";
+import EvaluatePage from "./pages/EvaluatePage";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import NewJoineeDashboard from "./pages/NewJoineeDashboard";
 import TestManagement from "./pages/TestManagement";
@@ -142,6 +143,16 @@ const App = () => {
               element={
                 session && userRole === "evaluator" ? (
                   <EvaluatorDashboard />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/evaluate/:attemptId"
+              element={
+                session && userRole === "evaluator" ? (
+                  <EvaluatePage />
                 ) : (
                   <Navigate to="/auth" replace />
                 )
