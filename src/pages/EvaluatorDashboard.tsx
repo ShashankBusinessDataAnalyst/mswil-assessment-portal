@@ -26,10 +26,12 @@ interface PendingAttempt {
 const EvaluatorDashboard = () => {
   const navigate = useNavigate();
   const [pendingAttempts, setPendingAttempts] = useState<PendingAttempt[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPendingAttempts();
+    fetchCompletedCount();
   }, []);
 
   const fetchPendingAttempts = async () => {
@@ -83,6 +85,20 @@ const EvaluatorDashboard = () => {
     }
   };
 
+  const fetchCompletedCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from("test_attempts")
+        .select("*", { count: 'exact', head: true })
+        .eq("status", "evaluated");
+
+      if (error) throw error;
+      setCompletedCount(count || 0);
+    } catch (error) {
+      console.error("Failed to load completed count:", error);
+    }
+  };
+
   if (loading) {
     return (
       <Layout title="Evaluator Dashboard" role="evaluator">
@@ -96,23 +112,37 @@ const EvaluatorDashboard = () => {
   return (
     <Layout title="Evaluator Dashboard" role="evaluator">
       <div className="space-y-6">
-        <Card className="border-accent/20 shadow-md">
-          <CardHeader>
-            <CardTitle>Pending Evaluations</CardTitle>
-            <CardDescription>
-              Review and grade submitted test responses
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-5 w-5 text-accent" />
-                <span className="text-2xl font-bold">{pendingAttempts.length}</span>
-                <span className="text-muted-foreground">tests waiting for evaluation</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-accent/20 shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Pending Evaluations</CardTitle>
+              <CardDescription>
+                Tests waiting for evaluation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <ClipboardCheck className="h-8 w-8 text-accent" />
+                <span className="text-4xl font-bold">{pendingAttempts.length}</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="border-accent/20 shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Completed Evaluations</CardTitle>
+              <CardDescription>
+                Tests already evaluated
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <ClipboardCheck className="h-8 w-8 text-primary" />
+                <span className="text-4xl font-bold">{completedCount}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {pendingAttempts.length === 0 ? (
           <Card>
