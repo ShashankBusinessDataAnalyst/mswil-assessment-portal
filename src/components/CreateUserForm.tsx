@@ -178,10 +178,10 @@ const CreateUserForm = () => {
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="new_joinee">New Joinee</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="evaluator">Evaluator</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="new_joinee">New Joinee</SelectItem>
               </SelectContent>
             </Select>
           </div>
