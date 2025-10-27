@@ -70,12 +70,17 @@ const NewJoineeDashboard = () => {
       }
     }
 
-    // Check if previous test is completed and passed
+    // Check if previous test is completed (submitted)
     if (test.test_number > 1) {
       const prevTest = tests.find(t => t.test_number === test.test_number - 1);
       if (prevTest) {
         const prevAttempt = attempts.find(a => a.test_id === prevTest.id);
-        if (!prevAttempt || !prevAttempt.passed) {
+        const isPrevCompleted = prevAttempt && 
+          (prevAttempt.status === "submitted" || 
+           prevAttempt.status === "evaluated" || 
+           prevAttempt.status === "graded");
+        
+        if (!isPrevCompleted) {
           return { status: "locked", label: "Locked", icon: Lock, color: "muted" };
         }
       }
