@@ -44,10 +44,12 @@ Deno.serve(async (req) => {
       })
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
+        if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
+          console.log(`User ${user.userId} already exists, skipping...`)
           results.push({ userId: user.userId, status: 'already_exists' })
           continue
         }
+        console.error('Auth error:', authError)
         throw authError
       }
 
