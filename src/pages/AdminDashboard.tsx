@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Users, ClipboardList, UserCog, BarChart3 } from "lucide-react";
+import CreateUserForm from "@/components/CreateUserForm";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -105,26 +106,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Create and manage user accounts with role assignments
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  User management features will allow you to:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                  <li>Create new user accounts with role assignment</li>
-                  <li>Assign users to cohorts</li>
-                  <li>Manage user roles (Admin, Evaluator, Manager, New Joinee)</li>
-                  <li>View user test progress and scores</li>
-                </ul>
-                <Button>Create New User</Button>
-              </CardContent>
-            </Card>
+            <CreateUserForm />
           </TabsContent>
 
           <TabsContent value="tests" className="space-y-4">
