@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,26 @@ interface LayoutProps {
 
 const Layout = ({ children, title, role }: LayoutProps) => {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile) {
+          setUserName(profile.full_name);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -44,8 +64,8 @@ const Layout = ({ children, title, role }: LayoutProps) => {
             </div>
             <div>
               <h1 className="text-lg font-semibold">{title}</h1>
-              {role && (
-                <p className="text-xs text-muted-foreground capitalize">{role.replace("_", " ")}</p>
+              {userName && (
+                <p className="text-xs text-muted-foreground">{userName}</p>
               )}
             </div>
           </div>
