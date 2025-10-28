@@ -47,7 +47,7 @@ const ManagerReviewPage = () => {
   const [feedback, setFeedback] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [showAllQuestions, setShowAllQuestions] = useState(true);
 
   useEffect(() => {
     if (attemptId) {
