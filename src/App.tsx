@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import EvaluatorDashboard from "./pages/EvaluatorDashboard";
 import EvaluatePage from "./pages/EvaluatePage";
 import ManagerDashboard from "./pages/ManagerDashboard";
+import ManagerReviewPage from "./pages/ManagerReviewPage";
 import NewJoineeDashboard from "./pages/NewJoineeDashboard";
 import TestManagement from "./pages/TestManagement";
 import TestPage from "./pages/TestPage";
@@ -148,16 +149,26 @@ const App = () => {
                 )
               }
             />
-            <Route
-              path="/evaluate/:attemptId"
-              element={
-                session && (userRole === "evaluator" || userRole === "manager") ? (
-                  <EvaluatePage />
-                ) : (
-                  <Navigate to="/auth" replace />
-                )
-              }
-            />
+          <Route
+            path="/evaluate/:attemptId"
+            element={
+              session && (userRole === "evaluator" || userRole === "manager") ? (
+                <EvaluatePage />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/manager-review/:attemptId"
+            element={
+              session && userRole === "manager" ? (
+                <ManagerReviewPage />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
             <Route
               path="/manager"
               element={

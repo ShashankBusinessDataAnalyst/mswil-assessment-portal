@@ -607,7 +607,7 @@ const ManagerDashboard = () => {
                             <TableCell className="text-right">
                               <Button
                                 size="sm"
-                                onClick={() => navigate(`/evaluate/${attempt.id}`)}
+                                onClick={() => navigate(`/manager-review/${attempt.id}`)}
                                 className="gap-2"
                               >
                                 <Edit className="h-3 w-3" />
@@ -781,7 +781,7 @@ const ManagerDashboard = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => navigate(`/evaluate/${attempt.id}`)}
+                              onClick={() => navigate(`/manager-review/${attempt.id}`)}
                               className="gap-2"
                             >
                               <Edit className="h-3 w-3" />
