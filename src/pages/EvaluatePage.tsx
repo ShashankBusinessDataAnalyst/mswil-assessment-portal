@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Save, User, Calendar, Clock, CheckCircle2, XCircle, Sparkles, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, User, Calendar, Clock, CheckCircle2, XCircle, Sparkles, Eye, EyeOff, Lock } from "lucide-react";
 
 interface TestResponse {
   id: string;
@@ -47,6 +47,7 @@ const EvaluatePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   useEffect(() => {
     if (attemptId) {
@@ -65,6 +66,11 @@ const EvaluatePage = () => {
 
       if (attemptError) throw attemptError;
       setAttempt(attemptData);
+      
+      // Check if already evaluated (read-only mode)
+      if (attemptData.status === 'evaluated') {
+        setIsReadOnly(true);
+      }
 
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -246,6 +252,12 @@ const EvaluatePage = () => {
             Back
           </Button>
           <div className="flex items-center gap-3">
+            {isReadOnly && (
+              <Badge variant="secondary" className="gap-2 py-2 px-4">
+                <Lock className="h-4 w-4" />
+                Read-Only Mode
+              </Badge>
+            )}
             <Button 
               variant="outline" 
               onClick={() => setShowAllQuestions(!showAllQuestions)}
@@ -253,10 +265,12 @@ const EvaluatePage = () => {
               {showAllQuestions ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
               {showAllQuestions ? "Show Only Needing Evaluation" : "Show All Questions"}
             </Button>
-            <Button onClick={handleSaveEvaluation} disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : "Save Evaluation"}
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={handleSaveEvaluation} disabled={saving}>
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Saving..." : "Save Evaluation"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -399,6 +413,7 @@ const EvaluatePage = () => {
                       value={scores[response.id] || 0}
                       onChange={(e) => handleScoreChange(response.id, e.target.value)}
                       className="mt-1"
+                      disabled={isReadOnly}
                     />
                   </div>
                 </div>
@@ -412,6 +427,7 @@ const EvaluatePage = () => {
                     onChange={(e) => handleFeedbackChange(response.id, e.target.value)}
                     className="mt-1"
                     rows={3}
+                    disabled={isReadOnly}
                   />
                 </div>
               </CardContent>
@@ -420,12 +436,14 @@ const EvaluatePage = () => {
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSaveEvaluation} disabled={saving} size="lg">
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "Saving..." : "Save Evaluation"}
-          </Button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex justify-end">
+            <Button onClick={handleSaveEvaluation} disabled={saving} size="lg">
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Saving..." : "Save Evaluation"}
+            </Button>
+          </div>
+        )}
       </div>
     </Layout>
   );

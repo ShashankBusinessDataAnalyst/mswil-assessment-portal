@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ClipboardCheck, User, Calendar, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { ClipboardCheck, User, Calendar, ArrowRight, CheckCircle2, XCircle, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface PendingAttempt {
   id: string;
@@ -18,6 +19,7 @@ interface PendingAttempt {
   profiles: {
     full_name: string;
     employee_id: string;
+    user_id: string;
   };
   tests: {
     title: string;
@@ -35,6 +37,7 @@ interface EvaluatedAttempt {
   profiles: {
     full_name: string;
     employee_id: string;
+    user_id: string;
   };
   tests: {
     title: string;
@@ -52,6 +55,8 @@ const EvaluatorDashboard = () => {
   const [evaluatedAttempts, setEvaluatedAttempts] = useState<EvaluatedAttempt[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [pendingSearch, setPendingSearch] = useState("");
+  const [evaluatedSearch, setEvaluatedSearch] = useState("");
 
   useEffect(() => {
     fetchPendingAttempts();
@@ -81,7 +86,7 @@ const EvaluatorDashboard = () => {
       // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, employee_id")
+        .select("id, full_name, employee_id, user_id")
         .in("id", userIds);
 
       if (profilesError) throw profilesError;
@@ -136,7 +141,7 @@ const EvaluatorDashboard = () => {
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, employee_id")
+        .select("id, full_name, employee_id, user_id")
         .in("id", userIds);
 
       if (profilesError) throw profilesError;
@@ -183,6 +188,28 @@ const EvaluatorDashboard = () => {
       console.error("Failed to load completed count:", error);
     }
   };
+
+  // Filter pending attempts based on search
+  const filteredPendingAttempts = pendingAttempts.filter(attempt => {
+    if (!pendingSearch) return true;
+    const searchLower = pendingSearch.toLowerCase();
+    return (
+      attempt.profiles.employee_id?.toLowerCase().includes(searchLower) ||
+      attempt.profiles.user_id?.toLowerCase().includes(searchLower) ||
+      attempt.tests.test_number.toString().includes(searchLower)
+    );
+  });
+
+  // Filter evaluated attempts based on search
+  const filteredEvaluatedAttempts = evaluatedAttempts.filter(attempt => {
+    if (!evaluatedSearch) return true;
+    const searchLower = evaluatedSearch.toLowerCase();
+    return (
+      attempt.profiles.employee_id?.toLowerCase().includes(searchLower) ||
+      attempt.profiles.user_id?.toLowerCase().includes(searchLower) ||
+      attempt.tests.test_number.toString().includes(searchLower)
+    );
+  });
 
   if (loading) {
     return (
@@ -240,19 +267,33 @@ const EvaluatorDashboard = () => {
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
-            {pendingAttempts.length === 0 ? (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Employee ID or Test Number..."
+                value={pendingSearch}
+                onChange={(e) => setPendingSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {filteredPendingAttempts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium mb-2">All caught up!</p>
+                  <p className="text-lg font-medium mb-2">
+                    {pendingSearch ? "No results found" : "All caught up!"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    There are no pending evaluations at the moment.
+                    {pendingSearch 
+                      ? "Try adjusting your search criteria"
+                      : "There are no pending evaluations at the moment."}
                   </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid gap-4">
-                {pendingAttempts.map((attempt) => (
+                {filteredPendingAttempts.map((attempt) => (
                   <Card key={attempt.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -295,13 +336,27 @@ const EvaluatorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="evaluated" className="space-y-4">
-            {evaluatedAttempts.length === 0 ? (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Employee ID or Test Number..."
+                value={evaluatedSearch}
+                onChange={(e) => setEvaluatedSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {filteredEvaluatedAttempts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium mb-2">No evaluated tests yet</p>
+                  <p className="text-lg font-medium mb-2">
+                    {evaluatedSearch ? "No results found" : "No evaluated tests yet"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Evaluated tests will appear here once you complete evaluations.
+                    {evaluatedSearch 
+                      ? "Try adjusting your search criteria"
+                      : "Evaluated tests will appear here once you complete evaluations."}
                   </p>
                 </CardContent>
               </Card>
@@ -320,7 +375,7 @@ const EvaluatorDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {evaluatedAttempts.map((attempt) => (
+                    {filteredEvaluatedAttempts.map((attempt) => (
                       <TableRow key={attempt.id}>
                         <TableCell>
                           <div>
