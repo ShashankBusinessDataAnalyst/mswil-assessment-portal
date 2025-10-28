@@ -400,7 +400,7 @@ const EvaluatorDashboard = () => {
                         </TableCell>
                         <TableCell className="text-center">
                           {attempt.passed ? (
-                            <Badge variant="default" className="bg-green-500 gap-1">
+                            <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1">
                               <CheckCircle2 className="h-3 w-3" />
                               Pass
                             </Badge>
