@@ -125,13 +125,23 @@ const ManagerDashboard = () => {
       
       if (attemptsError) throw attemptsError;
 
-      // Group by cohort
-      const cohortMap = new Map<string, { total: number; scores: number[]; passed: number }>();
+      // Group by cohort and track users with no failures
+      const cohortMap = new Map<string, { 
+        total: number; 
+        scores: number[]; 
+        passed: number;
+        userAttempts: Map<string, { hasFailed: boolean; hasPassed: boolean }>;
+      }>();
       
       profiles?.forEach(profile => {
         const cohort = profile.cohort || "Unassigned";
         if (!cohortMap.has(cohort)) {
-          cohortMap.set(cohort, { total: 0, scores: [], passed: 0 });
+          cohortMap.set(cohort, { 
+            total: 0, 
+            scores: [], 
+            passed: 0,
+            userAttempts: new Map()
+          });
         }
         cohortMap.get(cohort)!.total++;
       });
@@ -143,22 +153,41 @@ const ManagerDashboard = () => {
         if (data) {
           data.scores.push(attempt.score || 0);
           if (attempt.passed) data.passed++;
+          
+          // Track per-user attempt status
+          if (!data.userAttempts.has(attempt.user_id)) {
+            data.userAttempts.set(attempt.user_id, { hasFailed: false, hasPassed: false });
+          }
+          const userStatus = data.userAttempts.get(attempt.user_id)!;
+          if (attempt.passed === false) {
+            userStatus.hasFailed = true;
+          }
+          if (attempt.passed === true) {
+            userStatus.hasPassed = true;
+          }
         }
       });
 
-      const cohortResults: CohortData[] = Array.from(cohortMap.entries()).map(([cohort, data]) => ({
-        cohort,
-        employeeCount: data.total,
-        averageScore: data.scores.length > 0 
-          ? Math.round(data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length)
-          : 0,
-        completionRate: data.total > 0 
-          ? Math.round((data.scores.length / data.total) * 100)
-          : 0,
-        passRate: data.scores.length > 0
-          ? Math.round((data.passed / data.scores.length) * 100)
-          : 0
-      }));
+      const cohortResults: CohortData[] = Array.from(cohortMap.entries()).map(([cohort, data]) => {
+        // Count users who passed ALL tests (no failures and at least one passed test)
+        const usersWithNoFailures = Array.from(data.userAttempts.values()).filter(
+          u => !u.hasFailed && u.hasPassed
+        ).length;
+        
+        return {
+          cohort,
+          employeeCount: data.total,
+          averageScore: data.scores.length > 0 
+            ? Math.round(data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length)
+            : 0,
+          completionRate: data.total > 0 
+            ? Math.round((usersWithNoFailures / data.total) * 100)
+            : 0,
+          passRate: data.scores.length > 0
+            ? Math.round((data.passed / data.scores.length) * 100)
+            : 0
+        };
+      });
 
       setCohortData(cohortResults.sort((a, b) => a.cohort.localeCompare(b.cohort)));
     } catch (error) {
