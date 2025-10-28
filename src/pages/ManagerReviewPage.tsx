@@ -104,16 +104,20 @@ const ManagerReviewPage = () => {
             correct_answer
           )
         `)
-        .eq("attempt_id", attemptId)
-        .order("test_questions(question_number)");
+        .eq("attempt_id", attemptId);
 
       if (responsesError) throw responsesError;
 
-      setResponses(responsesData as any);
+      // Sort responses by question number
+      const sortedResponses = (responsesData as any[]).sort((a, b) => {
+        return (a.test_questions?.question_number || 0) - (b.test_questions?.question_number || 0);
+      });
+
+      setResponses(sortedResponses);
       
       // Initialize scores with existing points
       const initialScores: { [key: string]: number } = {};
-      responsesData.forEach((r: any) => {
+      sortedResponses.forEach((r: any) => {
         initialScores[r.id] = r.points_awarded || 0;
       });
       setScores(initialScores);
