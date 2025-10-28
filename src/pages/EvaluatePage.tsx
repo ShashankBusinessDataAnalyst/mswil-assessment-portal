@@ -9,13 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Save, User, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Save, User, Calendar, Clock, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 
 interface TestResponse {
   id: string;
   question_id: string;
   answer_text: string;
   points_awarded: number;
+  auto_scored: boolean;
   test_questions: {
     question_text: string;
     question_number: number;
@@ -92,6 +93,7 @@ const EvaluatePage = () => {
           question_id,
           answer_text,
           points_awarded,
+          auto_scored,
           test_questions (
             question_text,
             question_number,
@@ -273,9 +275,17 @@ const EvaluatePage = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <Badge variant="outline" className="mb-2">
-                      Question {response.test_questions.question_number}
-                    </Badge>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline">
+                        Question {response.test_questions.question_number}
+                      </Badge>
+                      {response.auto_scored && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          Auto-scored
+                        </Badge>
+                      )}
+                    </div>
                     <CardTitle className="text-lg">
                       {response.test_questions.question_text}
                     </CardTitle>
@@ -286,9 +296,24 @@ const EvaluatePage = () => {
                       </CardDescription>
                     )}
                   </div>
-                  <Badge>
-                    {response.test_questions.question_type}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge>
+                      {response.test_questions.question_type}
+                    </Badge>
+                    {response.auto_scored && response.test_questions.question_type === "mcq" && (
+                      response.answer_text?.trim() === response.test_questions.correct_answer?.trim() ? (
+                        <Badge variant="default" className="bg-green-500 gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Correct
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1">
+                          <XCircle className="h-3 w-3" />
+                          Incorrect
+                        </Badge>
+                      )
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -303,6 +328,9 @@ const EvaluatePage = () => {
                   <div>
                     <Label htmlFor={`score-${response.id}`}>
                       Points (Max: {response.test_questions.max_points})
+                      {response.auto_scored && (
+                        <span className="text-xs text-muted-foreground ml-2">(Auto-scored, editable)</span>
+                      )}
                     </Label>
                     <Input
                       id={`score-${response.id}`}
