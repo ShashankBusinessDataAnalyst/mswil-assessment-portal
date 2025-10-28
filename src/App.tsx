@@ -151,7 +151,7 @@ const App = () => {
             <Route
               path="/evaluate/:attemptId"
               element={
-                session && userRole === "evaluator" ? (
+                session && (userRole === "evaluator" || userRole === "manager") ? (
                   <EvaluatePage />
                 ) : (
                   <Navigate to="/auth" replace />
