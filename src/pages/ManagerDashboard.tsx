@@ -728,7 +728,6 @@ const ManagerDashboard = () => {
                         <TableHead className="text-right">Score</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead>Submitted</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -776,17 +775,6 @@ const ManagerDashboard = () => {
                           </TableCell>
                           <TableCell className="text-sm">
                             {new Date(attempt.submitted_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/manager-review/${attempt.id}`)}
-                              className="gap-2"
-                            >
-                              <Edit className="h-3 w-3" />
-                              Review
-                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
