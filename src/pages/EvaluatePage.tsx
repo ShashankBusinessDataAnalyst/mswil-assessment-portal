@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Save, User, Calendar, Clock, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, User, Calendar, Clock, CheckCircle2, XCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 
 interface TestResponse {
   id: string;
@@ -46,6 +46,7 @@ const EvaluatePage = () => {
   const [feedback, setFeedback] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
 
   useEffect(() => {
     if (attemptId) {
@@ -219,6 +220,20 @@ const EvaluatePage = () => {
     );
   }
 
+  // Filter responses to show only those needing evaluation
+  const questionsNeedingEvaluation = responses.filter(response => {
+    // Show if not auto-scored (needs manual evaluation)
+    if (!response.auto_scored) return true;
+    
+    // Show if auto-scored MCQ but incorrect
+    if (response.auto_scored && response.test_questions.question_type === 'mcq') {
+      return response.answer_text?.trim() !== response.test_questions.correct_answer?.trim();
+    }
+    
+    return false;
+  });
+
+  const displayedResponses = showAllQuestions ? responses : questionsNeedingEvaluation;
   const totalMaxPoints = responses.reduce((sum, r) => sum + r.test_questions.max_points, 0);
   const currentTotal = Object.values(scores).reduce((sum, score) => sum + score, 0);
 
@@ -230,11 +245,40 @@ const EvaluatePage = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <Button onClick={handleSaveEvaluation} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "Saving..." : "Save Evaluation"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAllQuestions(!showAllQuestions)}
+            >
+              {showAllQuestions ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+              {showAllQuestions ? "Show Only Needing Evaluation" : "Show All Questions"}
+            </Button>
+            <Button onClick={handleSaveEvaluation} disabled={saving}>
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Saving..." : "Save Evaluation"}
+            </Button>
+          </div>
         </div>
+
+        {!showAllQuestions && (
+          <Card className="bg-accent/10 border-accent">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {questionsNeedingEvaluation.length} question{questionsNeedingEvaluation.length !== 1 ? 's' : ''} need evaluation
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {responses.length - questionsNeedingEvaluation.length} auto-scored correctly and hidden
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-lg">
+                  {questionsNeedingEvaluation.length} / {responses.length}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -270,7 +314,22 @@ const EvaluatePage = () => {
         </Card>
 
         <div className="space-y-4">
-          {responses.map((response) => (
+          {displayedResponses.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <CheckCircle2 className="h-12 w-12 text-primary mb-4" />
+                <p className="text-lg font-medium mb-2">All questions auto-scored!</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  All MCQ questions were answered correctly and automatically scored.
+                </p>
+                <Button variant="outline" onClick={() => setShowAllQuestions(true)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View All Questions
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            displayedResponses.map((response) => (
             <Card key={response.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -357,7 +416,8 @@ const EvaluatePage = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            ))
+          )}
         </div>
 
         <div className="flex justify-end">
