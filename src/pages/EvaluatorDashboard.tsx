@@ -193,22 +193,14 @@ const EvaluatorDashboard = () => {
   const filteredPendingAttempts = pendingAttempts.filter(attempt => {
     if (!pendingSearch) return true;
     const searchLower = pendingSearch.toLowerCase();
-    return (
-      attempt.profiles.employee_id?.toLowerCase().includes(searchLower) ||
-      attempt.profiles.user_id?.toLowerCase().includes(searchLower) ||
-      attempt.tests.test_number.toString().includes(searchLower)
-    );
+    return attempt.profiles.employee_id?.toLowerCase().includes(searchLower);
   });
 
   // Filter evaluated attempts based on search
   const filteredEvaluatedAttempts = evaluatedAttempts.filter(attempt => {
     if (!evaluatedSearch) return true;
     const searchLower = evaluatedSearch.toLowerCase();
-    return (
-      attempt.profiles.employee_id?.toLowerCase().includes(searchLower) ||
-      attempt.profiles.user_id?.toLowerCase().includes(searchLower) ||
-      attempt.tests.test_number.toString().includes(searchLower)
-    );
+    return attempt.profiles.employee_id?.toLowerCase().includes(searchLower);
   });
 
   if (loading) {
@@ -270,7 +262,7 @@ const EvaluatorDashboard = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by Employee ID or Test Number..."
+                placeholder="Search by Employee ID (e.g., NJ007)..."
                 value={pendingSearch}
                 onChange={(e) => setPendingSearch(e.target.value)}
                 className="pl-10"
@@ -339,7 +331,7 @@ const EvaluatorDashboard = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by Employee ID or Test Number..."
+                placeholder="Search by Employee ID (e.g., NJ007)..."
                 value={evaluatedSearch}
                 onChange={(e) => setEvaluatedSearch(e.target.value)}
                 className="pl-10"
