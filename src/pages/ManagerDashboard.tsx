@@ -55,6 +55,26 @@ interface FailedAttempt {
   };
 }
 
+interface IndividualTestAttempt {
+  id: string;
+  user_id: string;
+  test_id: string;
+  score: number;
+  passed: boolean;
+  submitted_at: string;
+  status: string;
+  profiles: {
+    full_name: string;
+    employee_id: string;
+    cohort: string;
+  };
+  tests: {
+    title: string;
+    test_number: number;
+    passing_score: number;
+  };
+}
+
 const ManagerDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
@@ -66,15 +86,18 @@ const ManagerDashboard = () => {
   const [cohortData, setCohortData] = useState<CohortData[]>([]);
   const [employeeData, setEmployeeData] = useState<EmployeePerformance[]>([]);
   const [failedAttempts, setFailedAttempts] = useState<FailedAttempt[]>([]);
+  const [individualAttempts, setIndividualAttempts] = useState<IndividualTestAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [failedSearchTerm, setFailedSearchTerm] = useState("");
+  const [individualSearchTerm, setIndividualSearchTerm] = useState("");
 
   useEffect(() => {
     fetchStats();
     fetchCohortData();
     fetchEmployeeData();
     fetchFailedAttempts();
+    fetchIndividualTestAttempts();
   }, []);
 
   const fetchStats = async () => {
@@ -260,6 +283,74 @@ const ManagerDashboard = () => {
       emp.full_name.toLowerCase().includes(search) ||
       emp.employee_id.toLowerCase().includes(search) ||
       emp.cohort.toLowerCase().includes(search)
+    );
+  });
+
+  const fetchIndividualTestAttempts = async () => {
+    try {
+      const { data: attempts, error: attemptsError } = await supabase
+        .from("test_attempts")
+        .select(`
+          id,
+          user_id,
+          test_id,
+          score,
+          passed,
+          submitted_at,
+          status
+        `)
+        .in("status", ["evaluated", "graded"])
+        .order("submitted_at", { ascending: false });
+
+      if (attemptsError) throw attemptsError;
+      if (!attempts || attempts.length === 0) {
+        setIndividualAttempts([]);
+        return;
+      }
+
+      const userIds = [...new Set(attempts.map(a => a.user_id))];
+      const testIds = [...new Set(attempts.map(a => a.test_id))];
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, employee_id, cohort")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      const { data: tests, error: testsError } = await supabase
+        .from("tests")
+        .select("id, title, test_number, passing_score")
+        .in("id", testIds);
+
+      if (testsError) throw testsError;
+
+      const combined = attempts.map(attempt => ({
+        ...attempt,
+        profiles: profiles?.find(p => p.id === attempt.user_id) || { 
+          full_name: "Unknown", 
+          employee_id: "N/A",
+          cohort: "Unassigned"
+        },
+        tests: tests?.find(t => t.id === attempt.test_id) || { 
+          title: "Unknown", 
+          test_number: 0, 
+          passing_score: 70 
+        }
+      }));
+
+      setIndividualAttempts(combined as any);
+    } catch (error) {
+      console.error("Failed to load individual test attempts:", error);
+    }
+  };
+
+  const filteredIndividualAttempts = individualAttempts.filter(attempt => {
+    if (!individualSearchTerm) return true;
+    const search = individualSearchTerm.toLowerCase();
+    return (
+      attempt.profiles.employee_id.toLowerCase().includes(search) ||
+      attempt.profiles.full_name.toLowerCase().includes(search)
     );
   });
 
@@ -588,78 +679,103 @@ const ManagerDashboard = () => {
           <TabsContent value="individual" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Individual Performance</CardTitle>
+                <CardTitle>Individual Test Attempts</CardTitle>
                 <CardDescription>
-                  Detailed view of each employee's test results
+                  All test attempts with detailed results for each employee
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name, Employee ID, or cohort..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by Employee ID or name..."
+                    value={individualSearchTerm}
+                    onChange={(e) => setIndividualSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
 
-                {filteredEmployeeData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {searchTerm ? "No employees found matching your search." : "No employee data available yet."}
-                  </p>
+                {filteredIndividualAttempts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-2">
+                      {individualSearchTerm ? "No results found" : "No test attempts available"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {individualSearchTerm 
+                        ? "Try adjusting your search criteria"
+                        : "Test attempts will appear here once employees complete their assessments."}
+                    </p>
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Employee</TableHead>
                         <TableHead>Cohort</TableHead>
-                        <TableHead className="text-right">Tests Completed</TableHead>
-                        <TableHead className="text-right">Avg Score</TableHead>
-                        <TableHead className="text-center">Passed</TableHead>
-                        <TableHead className="text-center">Failed</TableHead>
+                        <TableHead>Test</TableHead>
+                        <TableHead className="text-right">Score</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredEmployeeData.map((employee) => (
-                        <TableRow key={employee.id}>
+                      {filteredIndividualAttempts.map((attempt) => (
+                        <TableRow key={attempt.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{employee.full_name}</div>
-                              <div className="text-xs text-muted-foreground">{employee.employee_id}</div>
+                              <div className="font-medium">{attempt.profiles.full_name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {attempt.profiles.employee_id}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{employee.cohort}</Badge>
+                            <Badge variant="outline">{attempt.profiles.cohort}</Badge>
                           </TableCell>
-                          <TableCell className="text-right">{employee.testsCompleted}</TableCell>
+                          <TableCell>
+                            <div>
+                              <Badge variant="outline" className="mb-1">
+                                Test {attempt.tests.test_number}
+                              </Badge>
+                              <div className="text-sm">{attempt.tests.title}</div>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right">
                             <Badge 
-                              variant={employee.averageScore >= 70 ? "default" : "secondary"}
-                              className={employee.averageScore >= 70 ? "bg-green-600" : ""}
+                              variant={attempt.passed ? "default" : "destructive"}
+                              className={attempt.passed ? "bg-green-600" : ""}
                             >
-                              {employee.averageScore}%
+                              {attempt.score}%
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            {employee.passed > 0 ? (
+                            {attempt.passed ? (
                               <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1">
                                 <CheckCircle2 className="h-3 w-3" />
-                                {employee.passed}
+                                Passed
                               </Badge>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {employee.failed > 0 ? (
                               <Badge variant="destructive" className="gap-1">
                                 <XCircle className="h-3 w-3" />
-                                {employee.failed}
+                                Failed
                               </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
                             )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(attempt.submitted_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/evaluate/${attempt.id}`)}
+                              className="gap-2"
+                            >
+                              <Edit className="h-3 w-3" />
+                              Review
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
