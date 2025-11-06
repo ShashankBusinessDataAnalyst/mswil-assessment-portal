@@ -171,7 +171,18 @@ const TestManagement = () => {
 
   const openQuestionManager = async (test: any) => {
     setSelectedTest(test);
-    await fetchQuestions(test.id);
+    const fetchedQuestions = await fetchQuestions(test.id);
+    
+    // Auto-generate next question number
+    const maxQuestionNumber = fetchedQuestions && fetchedQuestions.length > 0
+      ? Math.max(...fetchedQuestions.map((q: any) => q.question_number))
+      : 0;
+    
+    setQuestionForm({
+      ...questionForm,
+      question_number: (maxQuestionNumber + 1).toString()
+    });
+    
     setQuestionDialogOpen(true);
   };
 
@@ -185,9 +196,11 @@ const TestManagement = () => {
 
       if (error) throw error;
       setQuestions(data || []);
+      return data || [];
     } catch (error) {
       toast.error("Failed to load questions");
       console.error(error);
+      return [];
     }
   };
 
@@ -246,16 +259,22 @@ const TestManagement = () => {
       }
 
       setEditingQuestion(null);
+      
+      // Auto-generate next question number after adding
+      const updatedQuestions = await fetchQuestions(selectedTest.id);
+      const maxQuestionNumber = updatedQuestions && updatedQuestions.length > 0
+        ? Math.max(...updatedQuestions.map((q: any) => q.question_number))
+        : 0;
+      
       setQuestionForm({
         question_text: "",
         question_type: "mcq",
-        question_number: "",
+        question_number: (maxQuestionNumber + 1).toString(),
         max_points: "10",
         correct_answer: "",
         options: ["", "", "", ""],
         image_url: ""
       });
-      fetchQuestions(selectedTest.id);
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -556,6 +575,7 @@ const TestManagement = () => {
                           value={questionForm.question_number}
                           onChange={(e) => setQuestionForm({ ...questionForm, question_number: e.target.value })}
                           placeholder="1"
+                          required
                         />
                       </div>
 
