@@ -296,7 +296,14 @@ const TestPage = () => {
             <CardDescription>{currentQuestion.max_points} points</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-lg">{currentQuestion.question_text}</p>
+            <p className="text-lg whitespace-pre-line">
+              {currentQuestion.question_text.split('|').map((text: string, index: number) => (
+                <span key={index}>
+                  {text.trim()}
+                  {index < currentQuestion.question_text.split('|').length - 1 && '  '}
+                </span>
+              ))}
+            </p>
 
             {currentQuestion.image_url && (
               <div className="rounded-lg border overflow-hidden bg-muted/30">
