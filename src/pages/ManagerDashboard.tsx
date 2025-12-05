@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Users, TrendingUp, Award, Activity, Search, CheckCircle2, XCircle, AlertTriangle, Edit } from "lucide-react";
+import { Users, TrendingUp, Award, Activity, Search, CheckCircle2, XCircle, AlertTriangle, Edit, FileText } from "lucide-react";
 
 interface Stats {
   totalEmployees: number;
@@ -474,7 +474,7 @@ const ManagerDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="failed">
               Failed Tests
@@ -484,6 +484,7 @@ const ManagerDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="cohorts">By Cohort</TabsTrigger>
             <TabsTrigger value="individual">Individual Performance</TabsTrigger>
+            <TabsTrigger value="reports">Report Cards</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -781,6 +782,29 @@ const ManagerDashboard = () => {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Report Cards
+                </CardTitle>
+                <CardDescription>
+                  View detailed test scores for all employees
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  View report cards showing scored marks / total marks for each test, with filters by cohort and user ID.
+                </p>
+                <Button onClick={() => navigate("/report-card")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Report Cards
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
