@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, ClipboardList, UserCog, BarChart3 } from "lucide-react";
+import { Users, ClipboardList, UserCog, BarChart3, FileText } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
 
 const AdminDashboard = () => {
@@ -191,6 +191,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="users">Users List</TabsTrigger>
             <TabsTrigger value="evaluations">Evaluations by Cohort</TabsTrigger>
             <TabsTrigger value="tests">Test Management</TabsTrigger>
+            <TabsTrigger value="reports">Report Cards</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -383,6 +384,29 @@ const AdminDashboard = () => {
                   <li>View test completion statistics</li>
                 </ul>
                 <Button onClick={() => navigate("/admin/tests")}>Manage Tests</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Report Cards
+                </CardTitle>
+                <CardDescription>
+                  View detailed test scores for all employees
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  View report cards showing scored marks / total marks for each test, with filters by cohort and user ID.
+                </p>
+                <Button onClick={() => navigate("/report-card")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Report Cards
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

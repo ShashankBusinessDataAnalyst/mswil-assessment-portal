@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ClipboardCheck, User, Calendar, ArrowRight, CheckCircle2, XCircle, Search } from "lucide-react";
+import { ClipboardCheck, User, Calendar, ArrowRight, CheckCircle2, XCircle, Search, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface PendingAttempt {
@@ -244,6 +244,21 @@ const EvaluatorDashboard = () => {
                 <ClipboardCheck className="h-8 w-8 text-primary" />
                 <span className="text-4xl font-bold">{completedCount}</span>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-accent/20 shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Report Cards</CardTitle>
+              <CardDescription>
+                View test scores by employee
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate('/report-card')} variant="outline" className="w-full">
+                <FileText className="mr-2 h-4 w-4" />
+                View Report Cards
+              </Button>
             </CardContent>
           </Card>
         </div>
