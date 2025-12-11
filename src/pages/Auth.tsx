@@ -75,7 +75,7 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+  return <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'radial-gradient(circle at center, white 0%, white 20%, #ff4444 70%, #cc0000 100%)' }}>
       <Card className="w-full max-w-md shadow-xl rounded-lg">
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto">
