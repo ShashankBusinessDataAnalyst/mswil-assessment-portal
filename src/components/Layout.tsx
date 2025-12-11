@@ -102,7 +102,7 @@ const Layout = ({
         </div>
       </header>
       <main className="flex-1 container py-8 px-4 pb-24 border-gray-800">{children}</main>
-      <footer className="fixed bottom-0 left-0 right-0 z-40 w-full border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 w-full border-t backdrop-blur bg-[#ffd5d5]/95 shadow-sm">
         <div className="container py-3 px-4">
           <div className="text-center space-y-1">
             <p className="text-sm font-semibold text-foreground">
