@@ -2,8 +2,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Building2 } from "lucide-react";
+import { LogOut, FileText } from "lucide-react";
 import { toast } from "sonner";
+import logo from "@/assets/motherson-logo.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -34,20 +35,27 @@ const Layout = ({ children, title, role }: LayoutProps) => {
     fetchUserProfile();
   }, []);
 
+  const handleGoHome = () => {
+    switch (role) {
+      case "admin": navigate("/admin"); break;
+      case "manager": navigate("/manager"); break;
+      case "evaluator": navigate("/evaluator"); break;
+      case "new_joinee": navigate("/new-joinee"); break;
+      default: navigate("/"); break;
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      // Ignore session_not_found errors - session is already gone
       if (error && error.message && !error.message.toLowerCase().includes("session")) {
         toast.error("Error logging out");
         return;
       }
-      // Clear local storage manually to ensure clean logout
       localStorage.removeItem('supabase.auth.token');
       toast.success("Logged out successfully");
       navigate("/auth");
     } catch (error) {
-      // Even if there's an error, clear local state and redirect
       localStorage.removeItem('supabase.auth.token');
       toast.success("Logged out successfully");
       navigate("/auth");
@@ -56,20 +64,35 @@ const Layout = ({ children, title, role }: LayoutProps) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header className="sticky top-0 z-50 w-full border-b bg-amber-600">
         <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
+          {/* Left - Clickable Logo */}
+          <button onClick={handleGoHome} className="flex-shrink-0">
+            <img 
+              src={logo} 
+              alt="Motherson Logo" 
+              className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-white/50"
+            />
+          </button>
+          
+          {/* Center-Left - Title Section */}
+          <div className="flex items-center gap-3 bg-white/90 px-4 py-2 rounded-lg ml-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold">{title}</h1>
+              <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
               {userName && (
-                <p className="text-xs text-muted-foreground">{userName}</p>
+                <p className="text-xs text-gray-500">{userName}</p>
               )}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
+          
+          {/* Spacer */}
+          <div className="flex-1" />
+          
+          {/* Right - Logout Button */}
+          <Button variant="outline" size="sm" onClick={handleLogout} className="bg-white hover:bg-gray-100">
             <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
