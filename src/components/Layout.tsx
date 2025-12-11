@@ -95,7 +95,7 @@ const Layout = ({
           <div className="flex-1" />
           
           {/* Right - Logout Button */}
-          <Button variant="outline" size="sm" onClick={handleLogout} className="bg-white hover:bg-gray-100">
+          <Button variant="outline" size="sm" onClick={handleLogout} className="bg-white hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors">
             <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
