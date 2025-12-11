@@ -98,7 +98,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={session ? <Navigate to={getDashboardRoute()} replace /> : <Navigate to="/auth" replace />} />
-            <Route path="/auth" element={!session ? <Auth className="shadow-xl rounded-xl" /> : <Navigate to={getDashboardRoute()} replace />} />
+            <Route path="/auth" element={!session ? <Auth className="shadow-xl rounded-xl" /> : <Navigate to={getDashboardRoute()} replace />} className="bg-[#ff0000]" />
             <Route path="/setup" element={<Setup />} />
             <Route path="/admin" element={session && userRole === "admin" ? <AdminDashboard /> : <Navigate to="/auth" replace />} />
             <Route path="/admin/tests" element={session && userRole === "admin" ? <TestManagement /> : <Navigate to="/auth" replace />} />
