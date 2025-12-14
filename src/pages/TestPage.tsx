@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
@@ -56,6 +56,8 @@ const TestPage = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [showUnansweredDialog, setShowUnansweredDialog] = useState(false);
+  const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const pendingAnswersRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (testId) {
@@ -168,36 +170,77 @@ const TestPage = () => {
     }
   };
 
-  const handleAnswerChange = async (questionId: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  const saveAnswerToDb = useCallback(async (questionId: string, value: string, currentAttemptId: string) => {
+    try {
+      const { data: existing } = await supabase
+        .from("test_responses")
+        .select("id")
+        .eq("attempt_id", currentAttemptId)
+        .eq("question_id", questionId)
+        .maybeSingle();
 
-    // Auto-save answer
-    if (attemptId) {
-      try {
-        const { data: existing } = await supabase
+      if (existing) {
+        await supabase
           .from("test_responses")
-          .select("id")
-          .eq("attempt_id", attemptId)
-          .eq("question_id", questionId)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
-            .from("test_responses")
-            .update({ answer_text: value })
-            .eq("id", existing.id);
-        } else {
-          await supabase.from("test_responses").insert({
-            attempt_id: attemptId,
-            question_id: questionId,
-            answer_text: value,
-          });
-        }
-      } catch (error) {
-        console.error("Error saving answer:", error);
+          .update({ answer_text: value })
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("test_responses").insert({
+          attempt_id: currentAttemptId,
+          question_id: questionId,
+          answer_text: value,
+        });
       }
+      // Remove from pending after successful save
+      delete pendingAnswersRef.current[questionId];
+    } catch (error) {
+      console.error("Error saving answer:", error);
+    }
+  }, []);
+
+  const handleAnswerChange = (questionId: string, value: string) => {
+    // Update local state immediately for responsive UI
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    
+    // Track pending answer
+    pendingAnswersRef.current[questionId] = value;
+
+    // Clear any existing timeout for this question
+    if (saveTimeoutRef.current[questionId]) {
+      clearTimeout(saveTimeoutRef.current[questionId]);
+    }
+
+    // Debounce the database save (wait 500ms after user stops typing)
+    if (attemptId) {
+      saveTimeoutRef.current[questionId] = setTimeout(() => {
+        saveAnswerToDb(questionId, value, attemptId);
+      }, 500);
     }
   };
+
+  // Flush all pending saves
+  const flushPendingSaves = useCallback(async () => {
+    if (!attemptId) return;
+    
+    // Clear all pending timeouts
+    Object.values(saveTimeoutRef.current).forEach(clearTimeout);
+    saveTimeoutRef.current = {};
+    
+    // Save all pending answers
+    const pendingEntries = Object.entries(pendingAnswersRef.current);
+    await Promise.all(
+      pendingEntries.map(([questionId, value]) => 
+        saveAnswerToDb(questionId, value, attemptId)
+      )
+    );
+  }, [attemptId, saveAnswerToDb]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(saveTimeoutRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   const handleAutoSubmit = async () => {
     const unanswered = questions.filter(
@@ -216,6 +259,9 @@ const TestPage = () => {
 
     setSubmitting(true);
     try {
+      // Flush all pending saves before submitting
+      await flushPendingSaves();
+      
       // Update attempt status
       await supabase
         .from("test_attempts")
