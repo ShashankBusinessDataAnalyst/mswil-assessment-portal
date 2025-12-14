@@ -78,10 +78,18 @@ const CreateUserForm = () => {
         }
       });
 
-      if (error) throw error;
-
-      if (data.error) {
+      // Handle edge function errors - check data.error first since invoke may return error in data
+      if (data?.error) {
         throw new Error(data.error);
+      }
+
+      if (error) {
+        // Try to parse error message from context
+        const errorMessage = error.message || "Failed to create user";
+        if (errorMessage.includes("already been registered")) {
+          throw new Error("A user with this User ID already exists. Please use a different User ID.");
+        }
+        throw new Error(errorMessage);
       }
 
       toast.success(`User ${validated.fullName} created successfully`);
