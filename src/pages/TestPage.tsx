@@ -199,7 +199,14 @@ const TestPage = () => {
   };
 
   const handleAutoSubmit = async () => {
-    toast.info("Time's up! Submitting test automatically...");
+    const unanswered = questions.filter(
+      (q) => !answers[q.id] || answers[q.id].trim() === ""
+    );
+    if (unanswered.length > 0) {
+      toast.warning(`Time's up! ${unanswered.length} question(s) were left unanswered.`);
+    } else {
+      toast.info("Time's up! Submitting test automatically...");
+    }
     await submitTest();
   };
 
@@ -233,7 +240,13 @@ const TestPage = () => {
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
-  const answeredCount = Object.keys(answers).filter((k) => answers[k]).length;
+  const answeredCount = Object.keys(answers).filter((k) => answers[k] && answers[k].trim() !== "").length;
+  
+  // Validation: check if all questions are answered
+  const unansweredQuestions = questions.filter(
+    (q) => !answers[q.id] || answers[q.id].trim() === ""
+  );
+  const allQuestionsAnswered = unansweredQuestions.length === 0;
 
   if (loading) {
     return (
@@ -350,16 +363,27 @@ const TestPage = () => {
             Previous
           </Button>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col items-end gap-2">
             {currentQuestionIndex < questions.length - 1 ? (
               <Button onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}>
                 Next Question
               </Button>
             ) : (
-              <Button onClick={() => setShowSubmitDialog(true)} disabled={submitting}>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Submit Test
-              </Button>
+              <>
+                <Button 
+                  onClick={() => setShowSubmitDialog(true)} 
+                  disabled={submitting || !allQuestionsAnswered}
+                  title={!allQuestionsAnswered ? `Please answer all questions (${unansweredQuestions.length} remaining)` : ''}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Submit Test
+                </Button>
+                {!allQuestionsAnswered && (
+                  <p className="text-sm text-amber-600">
+                    ⚠️ Please answer all {unansweredQuestions.length} remaining question(s) before submitting
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -371,8 +395,7 @@ const TestPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Submit Test?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have answered {answeredCount} out of {questions.length} questions.
-              {answeredCount < questions.length && " Unanswered questions will be marked as incomplete."}
+              You have answered all {questions.length} questions.
               <br />
               <br />
               Are you sure you want to submit your test? This action cannot be undone.
