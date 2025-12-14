@@ -55,6 +55,7 @@ const TestPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showUnansweredDialog, setShowUnansweredDialog] = useState(false);
 
   useEffect(() => {
     if (testId) {
@@ -363,31 +364,57 @@ const TestPage = () => {
             Previous
           </Button>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
             {currentQuestionIndex < questions.length - 1 ? (
               <Button onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}>
                 Next Question
               </Button>
             ) : (
-              <>
-                <Button 
-                  onClick={() => setShowSubmitDialog(true)} 
-                  disabled={submitting || !allQuestionsAnswered}
-                  title={!allQuestionsAnswered ? `Please answer all questions (${unansweredQuestions.length} remaining)` : ''}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Submit Test
-                </Button>
-                {!allQuestionsAnswered && (
-                  <p className="text-sm text-amber-600">
-                    ⚠️ Please answer all {unansweredQuestions.length} remaining question(s) before submitting
-                  </p>
-                )}
-              </>
+              <Button 
+                onClick={() => {
+                  if (allQuestionsAnswered) {
+                    setShowSubmitDialog(true);
+                  } else {
+                    setShowUnansweredDialog(true);
+                  }
+                }} 
+                disabled={submitting}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Submit Test
+              </Button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Unanswered Questions Warning Dialog */}
+      <AlertDialog open={showUnansweredDialog} onOpenChange={setShowUnansweredDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600">⚠️ Unanswered Questions</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>You have not answered the following question(s):</p>
+                <p className="font-semibold text-destructive mt-2">
+                  {unansweredQuestions.map(q => `Question ${q.question_number}`).join(', ')}
+                </p>
+                <p className="mt-2">Please answer all questions before submitting the test.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              const firstUnanswered = unansweredQuestions[0];
+              const index = questions.findIndex(q => q.id === firstUnanswered.id);
+              setCurrentQuestionIndex(index);
+              setShowUnansweredDialog(false);
+            }}>
+              Go to Question {unansweredQuestions[0]?.question_number}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Submit Confirmation Dialog */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
