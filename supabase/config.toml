@@ -3,6 +3,9 @@ project_id = "aehmvquizygqgkmofdke"
 [functions.setup-test-users]
 verify_jwt = false
 
+[functions.setup-test-users]
+verify_jwt = false
+
 [functions.create-user]
 verify_jwt = true
 
