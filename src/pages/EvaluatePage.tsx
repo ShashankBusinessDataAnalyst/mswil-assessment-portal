@@ -22,8 +22,8 @@ interface TestResponse {
     question_number: number;
     question_type: string;
     max_points: number;
-    correct_answer: string | null;
   };
+  correct_answer?: string | null;
 }
 
 interface AttemptDetails {
@@ -105,8 +105,7 @@ const EvaluatePage = () => {
             question_text,
             question_number,
             question_type,
-            max_points,
-            correct_answer
+            max_points
           )
         `)
         .eq("attempt_id", attemptId)
@@ -114,7 +113,20 @@ const EvaluatePage = () => {
 
       if (responsesError) throw responsesError;
 
-      setResponses(responsesData as any);
+      // Fetch correct answers for all questions (only evaluators/admins can access)
+      const questionIds = responsesData?.map((r: any) => r.question_id) || [];
+      const { data: answersData } = await supabase
+        .from("test_question_answers")
+        .select("question_id, correct_answer")
+        .in("question_id", questionIds);
+
+      // Merge correct answers into responses
+      const responsesWithAnswers = responsesData?.map((r: any) => ({
+        ...r,
+        correct_answer: answersData?.find((a: any) => a.question_id === r.question_id)?.correct_answer || null
+      })) || [];
+
+      setResponses(responsesWithAnswers as any);
       
       // Initialize scores with existing points
       const initialScores: { [key: string]: number } = {};
@@ -233,7 +245,7 @@ const EvaluatePage = () => {
     
     // Show if auto-scored MCQ but incorrect
     if (response.auto_scored && response.test_questions.question_type === 'mcq') {
-      return response.answer_text?.trim() !== response.test_questions.correct_answer?.trim();
+      return response.answer_text?.trim() !== response.correct_answer?.trim();
     }
     
     return false;
@@ -362,10 +374,10 @@ const EvaluatePage = () => {
                     <CardTitle className="text-lg">
                       {response.test_questions.question_text}
                     </CardTitle>
-                    {response.test_questions.correct_answer && (
+                    {response.correct_answer && (
                       <CardDescription className="mt-2">
                         <span className="font-semibold">Correct Answer:</span>{" "}
-                        {response.test_questions.correct_answer}
+                        {response.correct_answer}
                       </CardDescription>
                     )}
                   </div>
@@ -374,7 +386,7 @@ const EvaluatePage = () => {
                       {response.test_questions.question_type}
                     </Badge>
                     {response.auto_scored && response.test_questions.question_type === "mcq" && (
-                      response.answer_text?.trim() === response.test_questions.correct_answer?.trim() ? (
+                      response.answer_text?.trim() === response.correct_answer?.trim() ? (
                         <Badge variant="default" className="bg-green-500 gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Correct

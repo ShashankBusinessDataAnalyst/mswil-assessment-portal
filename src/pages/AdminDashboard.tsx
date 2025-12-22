@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, ClipboardList, UserCog, BarChart3, FileText } from "lucide-react";
+import { Users, ClipboardList, UserCog, BarChart3, FileText, Trash2, Loader2 } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [cohortEvaluations, setCohortEvaluations] = useState<any[]>([]);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -142,6 +144,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleCleanupOrphanUsers = async () => {
+    setCleanupLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('cleanup-orphan-users', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Cleanup complete! Deleted ${data.deletedCount} orphaned users.`);
+        if (data.deletedCount > 0) {
+          console.log('Deleted users:', data.deleted);
+        }
+        if (data.errors?.length > 0) {
+          console.warn('Some deletions failed:', data.errors);
+          toast.warning(`${data.errors.length} users could not be deleted`);
+        }
+      } else {
+        throw new Error(data.error || 'Cleanup failed');
+      }
+    } catch (error: any) {
+      console.error('Cleanup error:', error);
+      toast.error(error.message || 'Failed to cleanup orphan users');
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
   const statCards = [
     { title: "Total Users", value: stats.totalUsers, icon: Users, color: "primary" },
     { title: "Active Tests", value: stats.totalTests, icon: ClipboardList, color: "accent" },
@@ -211,6 +249,43 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="create" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Cleanup Orphan Users
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cleanup Orphan Users</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all auth users that don't have any assigned roles. 
+                      This is useful when old users exist in the system without proper role assignments.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleCleanupOrphanUsers}
+                      disabled={cleanupLoading}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {cleanupLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Cleaning up...
+                        </>
+                      ) : (
+                        'Confirm Cleanup'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
             <CreateUserForm />
           </TabsContent>
 
