@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Clock, CheckCircle } from "lucide-react";
+import { Clock, CheckCircle, Loader2, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,8 +56,10 @@ const TestPage = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [showUnansweredDialog, setShowUnansweredDialog] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
   const pendingAnswersRef = useRef<Record<string, string>>({});
+  const savingIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (testId) {
@@ -172,6 +174,8 @@ const TestPage = () => {
 
   const saveAnswerToDb = useCallback(async (questionId: string, value: string, currentAttemptId: string) => {
     try {
+      setSavingStatus('saving');
+      
       const { data: existing } = await supabase
         .from("test_responses")
         .select("id")
@@ -193,10 +197,38 @@ const TestPage = () => {
       }
       // Remove from pending after successful save
       delete pendingAnswersRef.current[questionId];
+      
+      // Show saved status briefly
+      setSavingStatus('saved');
+      if (savingIndicatorTimeoutRef.current) {
+        clearTimeout(savingIndicatorTimeoutRef.current);
+      }
+      savingIndicatorTimeoutRef.current = setTimeout(() => {
+        setSavingStatus('idle');
+      }, 1500);
     } catch (error) {
       console.error("Error saving answer:", error);
+      setSavingStatus('idle');
+      toast.error("Failed to save answer. Please try again.");
     }
   }, []);
+
+  // Immediately save current answer (used on blur and navigation)
+  const saveCurrentAnswerImmediately = useCallback(async (questionId: string) => {
+    if (!attemptId) return;
+    
+    // Clear any pending timeout for this question
+    if (saveTimeoutRef.current[questionId]) {
+      clearTimeout(saveTimeoutRef.current[questionId]);
+      delete saveTimeoutRef.current[questionId];
+    }
+    
+    // Get the latest answer value from state or pending
+    const currentValue = pendingAnswersRef.current[questionId];
+    if (currentValue !== undefined) {
+      await saveAnswerToDb(questionId, currentValue, attemptId);
+    }
+  }, [attemptId, saveAnswerToDb]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     // Update local state immediately for responsive UI
@@ -210,35 +242,71 @@ const TestPage = () => {
       clearTimeout(saveTimeoutRef.current[questionId]);
     }
 
-    // Debounce the database save (wait 500ms after user stops typing)
+    // Debounce the database save (reduced to 300ms for faster saves)
     if (attemptId) {
       saveTimeoutRef.current[questionId] = setTimeout(() => {
         saveAnswerToDb(questionId, value, attemptId);
-      }, 500);
+      }, 300);
     }
   };
 
-  // Flush all pending saves
+  // Handle blur on textarea - save immediately
+  const handleTextareaBlur = useCallback((questionId: string) => {
+    saveCurrentAnswerImmediately(questionId);
+  }, [saveCurrentAnswerImmediately]);
+
+  // Navigation handlers that flush pending saves
+  const handlePreviousQuestion = useCallback(async () => {
+    if (currentQuestionIndex > 0) {
+      const currentQId = questions[currentQuestionIndex]?.id;
+      if (currentQId) {
+        await saveCurrentAnswerImmediately(currentQId);
+      }
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  }, [currentQuestionIndex, questions, saveCurrentAnswerImmediately]);
+
+  const handleNextQuestion = useCallback(async () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      const currentQId = questions[currentQuestionIndex]?.id;
+      if (currentQId) {
+        await saveCurrentAnswerImmediately(currentQId);
+      }
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  }, [currentQuestionIndex, questions, saveCurrentAnswerImmediately]);
+
+  // Flush all pending saves - now uses current answers state
   const flushPendingSaves = useCallback(async () => {
     if (!attemptId) return;
     
     // Clear all pending timeouts
-    Object.values(saveTimeoutRef.current).forEach(clearTimeout);
+    Object.keys(saveTimeoutRef.current).forEach((key) => {
+      clearTimeout(saveTimeoutRef.current[key]);
+    });
     saveTimeoutRef.current = {};
     
-    // Save all pending answers
-    const pendingEntries = Object.entries(pendingAnswersRef.current);
-    await Promise.all(
-      pendingEntries.map(([questionId, value]) => 
-        saveAnswerToDb(questionId, value, attemptId)
-      )
-    );
+    // Merge pending answers with current answers to ensure we save everything
+    const allPendingKeys = Object.keys(pendingAnswersRef.current);
+    
+    if (allPendingKeys.length > 0) {
+      setSavingStatus('saving');
+      await Promise.all(
+        allPendingKeys.map((questionId) => {
+          const value = pendingAnswersRef.current[questionId];
+          return saveAnswerToDb(questionId, value, attemptId);
+        })
+      );
+    }
   }, [attemptId, saveAnswerToDb]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       Object.values(saveTimeoutRef.current).forEach(clearTimeout);
+      if (savingIndicatorTimeoutRef.current) {
+        clearTimeout(savingIndicatorTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -390,12 +458,29 @@ const TestPage = () => {
                 ))}
               </RadioGroup>
             ) : (
-              <Textarea
-                value={answers[currentQuestion.id] || ""}
-                onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                placeholder="Type your answer here..."
-                className="min-h-[200px]"
-              />
+              <div className="space-y-2">
+                <Textarea
+                  value={answers[currentQuestion.id] || ""}
+                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                  onBlur={() => handleTextareaBlur(currentQuestion.id)}
+                  placeholder="Type your answer here..."
+                  className="min-h-[200px]"
+                />
+                <div className="flex items-center justify-end h-5 text-sm">
+                  {savingStatus === 'saving' && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                  {savingStatus === 'saved' && (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Check className="h-3 w-3" />
+                      Saved
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -404,7 +489,7 @@ const TestPage = () => {
         <div className="flex items-center justify-between gap-4">
           <Button
             variant="outline"
-            onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+            onClick={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
           >
             Previous
@@ -412,12 +497,17 @@ const TestPage = () => {
 
           <div className="flex items-center gap-2">
             {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}>
+              <Button onClick={handleNextQuestion}>
                 Next Question
               </Button>
             ) : (
               <Button 
-                onClick={() => {
+                onClick={async () => {
+                  // Save current answer before showing dialog
+                  const currentQId = questions[currentQuestionIndex]?.id;
+                  if (currentQId) {
+                    await saveCurrentAnswerImmediately(currentQId);
+                  }
                   if (allQuestionsAnswered) {
                     setShowSubmitDialog(true);
                   } else {
