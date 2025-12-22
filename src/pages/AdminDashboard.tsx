@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, ClipboardList, UserCog, BarChart3, FileText, Trash2, Loader2 } from "lucide-react";
+import { Users, ClipboardList, UserCog, BarChart3, FileText, Trash2, Loader2, Pencil } from "lucide-react";
 import CreateUserForm from "@/components/CreateUserForm";
+import EditUserDialog from "@/components/EditUserDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const AdminDashboard = () => {
@@ -26,6 +27,8 @@ const AdminDashboard = () => {
   const [cohortEvaluations, setCohortEvaluations] = useState<any[]>([]);
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   useEffect(() => {
     fetchStats();
@@ -324,12 +327,13 @@ const AdminDashboard = () => {
                       <TableHead>User ID</TableHead>
                       <TableHead>Employee ID</TableHead>
                       <TableHead>Cohort</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
                           No users found
                         </TableCell>
                       </TableRow>
@@ -347,6 +351,18 @@ const AdminDashboard = () => {
                           <TableCell>{user.userId}</TableCell>
                           <TableCell>{user.employee_id}</TableCell>
                           <TableCell>{user.cohort || '-'}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setEditDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -486,6 +502,13 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <EditUserDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          user={selectedUser}
+          onSuccess={fetchUsers}
+        />
       </div>
     </Layout>
   );
