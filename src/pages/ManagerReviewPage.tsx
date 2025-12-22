@@ -22,8 +22,8 @@ interface TestResponse {
     question_number: number;
     question_type: string;
     max_points: number;
-    correct_answer: string | null;
   };
+  correct_answer?: string | null;
 }
 
 interface AttemptDetails {
@@ -100,16 +100,28 @@ const ManagerReviewPage = () => {
             question_text,
             question_number,
             question_type,
-            max_points,
-            correct_answer
+            max_points
           )
         `)
         .eq("attempt_id", attemptId);
 
       if (responsesError) throw responsesError;
 
+      // Fetch correct answers for all questions (managers can access)
+      const questionIds = responsesData?.map((r: any) => r.question_id) || [];
+      const { data: answersData } = await supabase
+        .from("test_question_answers")
+        .select("question_id, correct_answer")
+        .in("question_id", questionIds);
+
+      // Merge correct answers into responses
+      const responsesWithAnswers = responsesData?.map((r: any) => ({
+        ...r,
+        correct_answer: answersData?.find((a: any) => a.question_id === r.question_id)?.correct_answer || null
+      })) || [];
+
       // Sort responses by question number
-      const sortedResponses = (responsesData as any[]).sort((a, b) => {
+      const sortedResponses = responsesWithAnswers.sort((a, b) => {
         return (a.test_questions?.question_number || 0) - (b.test_questions?.question_number || 0);
       });
 
@@ -354,10 +366,10 @@ const ManagerReviewPage = () => {
                     <CardTitle className="text-lg">
                       {response.test_questions.question_text}
                     </CardTitle>
-                    {response.test_questions.correct_answer && (
+                    {response.correct_answer && (
                       <CardDescription className="mt-2">
                         <span className="font-semibold">Correct Answer:</span>{" "}
-                        {response.test_questions.correct_answer}
+                        {response.correct_answer}
                       </CardDescription>
                     )}
                   </div>
@@ -366,7 +378,7 @@ const ManagerReviewPage = () => {
                       {response.test_questions.question_type}
                     </Badge>
                     {response.auto_scored && response.test_questions.question_type === "mcq" && (
-                      response.answer_text?.trim() === response.test_questions.correct_answer?.trim() ? (
+                      response.answer_text?.trim() === response.correct_answer?.trim() ? (
                         <Badge variant="default" className="bg-green-500 gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Correct

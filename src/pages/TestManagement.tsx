@@ -195,8 +195,22 @@ const TestManagement = () => {
         .order("question_number", { ascending: true });
 
       if (error) throw error;
-      setQuestions(data || []);
-      return data || [];
+
+      // Fetch correct answers from separate table
+      const questionIds = data?.map((q: any) => q.id) || [];
+      const { data: answersData } = await supabase
+        .from("test_question_answers")
+        .select("question_id, correct_answer")
+        .in("question_id", questionIds);
+
+      // Merge correct answers into questions
+      const questionsWithAnswers = data?.map((q: any) => ({
+        ...q,
+        correct_answer: answersData?.find((a: any) => a.question_id === q.id)?.correct_answer || null
+      })) || [];
+
+      setQuestions(questionsWithAnswers);
+      return questionsWithAnswers;
     } catch (error) {
       toast.error("Failed to load questions");
       console.error(error);
@@ -236,10 +250,11 @@ const TestManagement = () => {
         question_type: validated.question_type,
         question_number: validated.question_number,
         max_points: validated.max_points,
-        correct_answer: validated.question_type === "mcq" ? validated.correct_answer : validated.correct_answer || null,
         options: validated.options,
         image_url: validated.image_url || null
       };
+
+      const correctAnswer = validated.question_type === "mcq" ? validated.correct_answer : validated.correct_answer || null;
 
       if (editingQuestion) {
         const { error } = await supabase
@@ -248,13 +263,41 @@ const TestManagement = () => {
           .eq("id", editingQuestion.id);
 
         if (error) throw error;
+
+        // Update or insert correct answer
+        if (correctAnswer) {
+          const { error: answerError } = await supabase
+            .from("test_question_answers")
+            .upsert({
+              question_id: editingQuestion.id,
+              correct_answer: correctAnswer
+            }, { onConflict: 'question_id' });
+
+          if (answerError) throw answerError;
+        }
+
         toast.success("Question updated successfully");
       } else {
-        const { error } = await supabase
+        const { data: insertedQuestion, error } = await supabase
           .from("test_questions")
-          .insert(questionData);
+          .insert(questionData)
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Insert correct answer to separate table
+        if (correctAnswer && insertedQuestion) {
+          const { error: answerError } = await supabase
+            .from("test_question_answers")
+            .insert({
+              question_id: insertedQuestion.id,
+              correct_answer: correctAnswer
+            });
+
+          if (answerError) throw answerError;
+        }
+
         toast.success("Question added successfully");
       }
 

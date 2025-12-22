@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-user]
 verify_jwt = true
+
+[functions.cleanup-orphan-users]
+verify_jwt = true

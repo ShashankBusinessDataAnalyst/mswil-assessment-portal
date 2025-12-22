@@ -196,9 +196,37 @@ export type Database = {
           },
         ]
       }
+      test_question_answers: {
+        Row: {
+          correct_answer: string
+          created_at: string | null
+          id: string
+          question_id: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string | null
+          id?: string
+          question_id: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string | null
+          id?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_question_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: true
+            referencedRelation: "test_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_questions: {
         Row: {
-          correct_answer: string | null
           created_at: string | null
           id: string
           image_url: string | null
@@ -210,7 +238,6 @@ export type Database = {
           test_id: string
         }
         Insert: {
-          correct_answer?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null
@@ -222,7 +249,6 @@ export type Database = {
           test_id: string
         }
         Update: {
-          correct_answer?: string | null
           created_at?: string | null
           id?: string
           image_url?: string | null
