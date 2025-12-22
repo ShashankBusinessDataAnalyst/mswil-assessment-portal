@@ -213,9 +213,9 @@ const TestPage = () => {
     }
   }, []);
 
-  // Immediately save current answer (used on blur and navigation)
-  const saveCurrentAnswerImmediately = useCallback(async (questionId: string) => {
-    if (!attemptId) return;
+  // Immediately save current answer with explicit value (used on blur and navigation)
+  const saveAnswerWithValue = useCallback(async (questionId: string, value: string) => {
+    if (!attemptId || !value) return;
     
     // Clear any pending timeout for this question
     if (saveTimeoutRef.current[questionId]) {
@@ -223,11 +223,7 @@ const TestPage = () => {
       delete saveTimeoutRef.current[questionId];
     }
     
-    // Get the latest answer value from state or pending
-    const currentValue = pendingAnswersRef.current[questionId];
-    if (currentValue !== undefined) {
-      await saveAnswerToDb(questionId, currentValue, attemptId);
-    }
+    await saveAnswerToDb(questionId, value, attemptId);
   }, [attemptId, saveAnswerToDb]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
@@ -250,31 +246,35 @@ const TestPage = () => {
     }
   };
 
-  // Handle blur on textarea - save immediately
-  const handleTextareaBlur = useCallback((questionId: string) => {
-    saveCurrentAnswerImmediately(questionId);
-  }, [saveCurrentAnswerImmediately]);
+  // Handle blur on textarea - save immediately with the current input value
+  const handleTextareaBlur = useCallback((questionId: string, currentValue: string) => {
+    if (currentValue && currentValue.trim()) {
+      saveAnswerWithValue(questionId, currentValue);
+    }
+  }, [saveAnswerWithValue]);
 
-  // Navigation handlers that flush pending saves
+  // Navigation handlers that save current answer using latest state value
   const handlePreviousQuestion = useCallback(async () => {
     if (currentQuestionIndex > 0) {
       const currentQId = questions[currentQuestionIndex]?.id;
-      if (currentQId) {
-        await saveCurrentAnswerImmediately(currentQId);
+      const currentValue = answers[currentQId];
+      if (currentQId && currentValue) {
+        await saveAnswerWithValue(currentQId, currentValue);
       }
       setCurrentQuestionIndex((prev) => prev - 1);
     }
-  }, [currentQuestionIndex, questions, saveCurrentAnswerImmediately]);
+  }, [currentQuestionIndex, questions, answers, saveAnswerWithValue]);
 
   const handleNextQuestion = useCallback(async () => {
     if (currentQuestionIndex < questions.length - 1) {
       const currentQId = questions[currentQuestionIndex]?.id;
-      if (currentQId) {
-        await saveCurrentAnswerImmediately(currentQId);
+      const currentValue = answers[currentQId];
+      if (currentQId && currentValue) {
+        await saveAnswerWithValue(currentQId, currentValue);
       }
       setCurrentQuestionIndex((prev) => prev + 1);
     }
-  }, [currentQuestionIndex, questions, saveCurrentAnswerImmediately]);
+  }, [currentQuestionIndex, questions, answers, saveAnswerWithValue]);
 
   // Flush all pending saves - now uses current answers state
   const flushPendingSaves = useCallback(async () => {
@@ -462,7 +462,7 @@ const TestPage = () => {
                 <Textarea
                   value={answers[currentQuestion.id] || ""}
                   onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                  onBlur={() => handleTextareaBlur(currentQuestion.id)}
+                  onBlur={(e) => handleTextareaBlur(currentQuestion.id, e.target.value)}
                   placeholder="Type your answer here..."
                   className="min-h-[200px]"
                 />
@@ -505,8 +505,9 @@ const TestPage = () => {
                 onClick={async () => {
                   // Save current answer before showing dialog
                   const currentQId = questions[currentQuestionIndex]?.id;
-                  if (currentQId) {
-                    await saveCurrentAnswerImmediately(currentQId);
+                  const currentValue = answers[currentQId];
+                  if (currentQId && currentValue) {
+                    await saveAnswerWithValue(currentQId, currentValue);
                   }
                   if (allQuestionsAnswered) {
                     setShowSubmitDialog(true);
