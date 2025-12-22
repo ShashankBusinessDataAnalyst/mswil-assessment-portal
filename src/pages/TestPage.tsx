@@ -60,6 +60,7 @@ const TestPage = () => {
   const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
   const pendingAnswersRef = useRef<Record<string, string>>({});
   const savingIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const savingInProgressRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     if (testId) {
@@ -172,29 +173,36 @@ const TestPage = () => {
     }
   };
 
-  const saveAnswerToDb = useCallback(async (questionId: string, value: string, currentAttemptId: string) => {
+  const saveAnswerToDb = useCallback(async (questionId: string, value: string, currentAttemptId: string): Promise<void> => {
+    // Prevent concurrent saves for the same question
+    if (savingInProgressRef.current[questionId]) {
+      // Queue this value to be saved after current save completes
+      pendingAnswersRef.current[questionId] = value;
+      return;
+    }
+    
+    savingInProgressRef.current[questionId] = true;
+    
     try {
       setSavingStatus('saving');
       
-      const { data: existing } = await supabase
+      // Use atomic upsert with onConflict to prevent race conditions
+      const { error } = await supabase
         .from("test_responses")
-        .select("id")
-        .eq("attempt_id", currentAttemptId)
-        .eq("question_id", questionId)
-        .maybeSingle();
+        .upsert(
+          {
+            attempt_id: currentAttemptId,
+            question_id: questionId,
+            answer_text: value,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'attempt_id,question_id',
+          }
+        );
 
-      if (existing) {
-        await supabase
-          .from("test_responses")
-          .update({ answer_text: value })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("test_responses").insert({
-          attempt_id: currentAttemptId,
-          question_id: questionId,
-          answer_text: value,
-        });
-      }
+      if (error) throw error;
+      
       // Remove from pending after successful save
       delete pendingAnswersRef.current[questionId];
       
@@ -210,6 +218,15 @@ const TestPage = () => {
       console.error("Error saving answer:", error);
       setSavingStatus('idle');
       toast.error("Failed to save answer. Please try again.");
+    } finally {
+      savingInProgressRef.current[questionId] = false;
+      
+      // Check if there's a newer value pending
+      const pendingValue = pendingAnswersRef.current[questionId];
+      if (pendingValue !== undefined && pendingValue !== value) {
+        // Recursively save the latest value
+        saveAnswerToDb(questionId, pendingValue, currentAttemptId);
+      }
     }
   }, []);
 
@@ -238,11 +255,11 @@ const TestPage = () => {
       clearTimeout(saveTimeoutRef.current[questionId]);
     }
 
-    // Debounce the database save (reduced to 300ms for faster saves)
+    // Debounce the database save (800ms to reduce partial saves)
     if (attemptId) {
       saveTimeoutRef.current[questionId] = setTimeout(() => {
         saveAnswerToDb(questionId, value, attemptId);
-      }, 300);
+      }, 800);
     }
   };
 
