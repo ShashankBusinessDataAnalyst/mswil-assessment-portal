@@ -7,108 +7,140 @@ const corsHeaders = {
 
 interface TestUser {
   userId: string
-  password: string
   fullName: string
   role: 'admin' | 'evaluator' | 'manager' | 'new_joinee'
+  cohort?: string
 }
 
-// Generate a secure random password
-function generateSecurePassword(): string {
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-  const numbers = '0123456789';
-  const special = '!@#$%^&*';
-  const allChars = uppercase + lowercase + numbers + special;
-  
-  let password = '';
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += special[Math.floor(Math.random() * special.length)];
-  
-  for (let i = 4; i < 12; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
-  }
-  
-  return password.split('').sort(() => Math.random() - 0.5).join('');
-}
-
-const TEMP_PASSWORD = generateSecurePassword();
+const TEMP_PASSWORD = 'Test@123!'
 
 const testUsers: TestUser[] = [
-  { userId: 'MSWIL_001', password: TEMP_PASSWORD, fullName: 'Admin User', role: 'admin' },
+  { userId: 'MSWIL_A001', fullName: 'Admin User', role: 'admin' },
+  { userId: 'MSWIL_M001', fullName: 'Manager User', role: 'manager' },
+  { userId: 'MSWIL_E001', fullName: 'Evaluator User', role: 'evaluator' },
+  { userId: 'MSWIL_N001', fullName: 'New Joinee User', role: 'new_joinee', cohort: 'Cohort 2024' },
 ]
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
-    const results = []
+    const createdUsers: { userId: string; email: string; role: string; password: string }[] = []
+    const errors: { userId: string; error: string }[] = []
 
     for (const user of testUsers) {
-      // Create user in auth system
-      const email = `${user.userId}@company.local`
+      const email = `${user.userId.toLowerCase()}@company.local`
       
+      console.log(`Creating user: ${user.userId} (${email})`)
+
+      // Create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: user.password,
+        password: TEMP_PASSWORD,
         email_confirm: true,
         user_metadata: {
           full_name: user.fullName,
+          employee_id: user.userId
         }
       })
 
       if (authError) {
-        if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
-          console.log(`User ${user.userId} already exists, skipping...`)
-          results.push({ userId: user.userId, status: 'already_exists' })
-          continue
-        }
-        console.error('Auth error:', authError)
-        throw authError
+        console.error(`Failed to create auth user ${user.userId}:`, authError)
+        errors.push({ userId: user.userId, error: authError.message })
+        continue
       }
+
+      if (!authData.user) {
+        errors.push({ userId: user.userId, error: 'No user returned from auth' })
+        continue
+      }
+
+      console.log(`Auth user created: ${authData.user.id}`)
 
       // Assign role
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({
           user_id: authData.user.id,
-          role: user.role,
+          role: user.role
         })
 
-      if (roleError && !roleError.message.includes('duplicate')) {
-        throw roleError
+      if (roleError) {
+        console.error(`Failed to assign role for ${user.userId}:`, roleError)
+        errors.push({ userId: user.userId, error: `Role assignment failed: ${roleError.message}` })
+        continue
       }
 
-      results.push({ 
-        userId: user.userId, 
-        status: 'created', 
-        id: authData.user.id,
-        temporaryPassword: user.password 
+      // Update profile with cohort if new_joinee
+      if (user.cohort) {
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .update({ cohort: user.cohort, user_id: user.userId })
+          .eq('id', authData.user.id)
+
+        if (profileError) {
+          console.error(`Failed to update profile for ${user.userId}:`, profileError)
+        }
+      } else {
+        // Update user_id in profile
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .update({ user_id: user.userId })
+          .eq('id', authData.user.id)
+
+        if (profileError) {
+          console.error(`Failed to update profile for ${user.userId}:`, profileError)
+        }
+      }
+
+      createdUsers.push({
+        userId: user.userId,
+        email,
+        role: user.role,
+        password: TEMP_PASSWORD
       })
+
+      console.log(`Successfully created user: ${user.userId} with role ${user.role}`)
     }
 
+    const result = {
+      success: true,
+      message: `Created ${createdUsers.length} users`,
+      users: createdUsers,
+      errors: errors.length > 0 ? errors : undefined
+    }
+
+    console.log('Setup complete:', result)
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+
+  } catch (error) {
+    console.error('Setup error:', error)
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        results,
-        message: 'Admin user created. Please save the temporary password and change it on first login.'
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
     )
   }
 })
