@@ -3,11 +3,11 @@ project_id = "aehmvquizygqgkmofdke"
 [functions.setup-test-users]
 verify_jwt = false
 
-[functions.setup-test-users]
-verify_jwt = false
-
 [functions.create-user]
 verify_jwt = true
 
 [functions.cleanup-orphan-users]
+verify_jwt = true
+
+[functions.update-user]
 verify_jwt = true
