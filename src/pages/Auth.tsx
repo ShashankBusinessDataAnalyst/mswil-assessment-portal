@@ -81,7 +81,7 @@ const Auth = () => {
             <GraduationCap className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">Assessment Portal</CardTitle>
-          <CardDescription className="text-base">Motherson Sumi Wiring India Ltd<br />Employee Onboarding & Evaluation System</CardDescription>
+          <CardDescription className="text-base">Company Name<br />Employee Onboarding & Evaluation System</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
