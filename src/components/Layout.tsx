@@ -108,7 +108,7 @@ const Layout = ({
         <div className="container py-3 px-4">
           <div className="text-center space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Motherson Sumi Wiring India Ltd
+              Company Name
             </p>
             <p className="text-xs text-muted-foreground">
               Employee Onboarding & Evaluation System
