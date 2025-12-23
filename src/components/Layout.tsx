@@ -2,9 +2,8 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, FileText } from "lucide-react";
+import { LogOut, FileText, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
-import logo from "@/assets/motherson-logo.png";
 interface LayoutProps {
   children: ReactNode;
   title: string;
@@ -76,8 +75,11 @@ const Layout = ({
       <header className="sticky top-0 z-50 w-full border-b bg-primary-foreground">
         <div className="container flex h-16 items-center justify-between px-4">
           {/* Left - Clickable Logo */}
-          <button onClick={handleGoHome} className="flex-shrink-0">
-            <img src={logo} alt="Motherson Logo" className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-muted-foreground" />
+          <button 
+            onClick={handleGoHome} 
+            className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity shadow-md"
+          >
+            <GraduationCap className="h-6 w-6 text-white" />
           </button>
           
           {/* Center-Left - Title Section */}
