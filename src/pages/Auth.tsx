@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Lock, User } from "lucide-react";
+import { GraduationCap, Lock, User } from "lucide-react";
 import { z } from "zod";
-import mothersonLogo from "@/assets/motherson-logo.png";
 const loginSchema = z.object({
   userId: z.string().trim().min(3, {
     message: "User ID must be at least 3 characters"
@@ -78,8 +77,8 @@ const Auth = () => {
   return <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'radial-gradient(circle at center, white 0%, white 20%, #ff4444 70%, #cc0000 100%)' }}>
       <Card className="w-full max-w-md shadow-xl rounded-lg">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto">
-            <img src={mothersonLogo} alt="Motherson Sumi" className="h-16 w-auto mx-auto" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center shadow-lg">
+            <GraduationCap className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">Assessment Portal</CardTitle>
           <CardDescription className="text-base">Motherson Sumi Wiring India Ltd<br />Employee Onboarding & Evaluation System</CardDescription>
